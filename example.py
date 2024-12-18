@@ -1,6 +1,11 @@
 from Kitsune import Kitsune
 import numpy as np
 import time
+import subprocess
+import pandas as pd
+import matplotlib.pyplot as plt
+import os
+import pickle
 
 ##############################################################################
 # Kitsune a lightweight online network intrusion detection system based on an ensemble of autoencoders (kitNET).
@@ -22,8 +27,8 @@ with zipfile.ZipFile("mirai.zip","r") as zip_ref:
 
 
 # File location
-path = "mirai.pcap" #the pcap, pcapng, or tsv file to process.
-packet_limit = np.Inf #the number of packets to process
+path = "mirai.tsv"  #the pcap, pcapng, or tsv file to process.
+packet_limit = np.inf #the number of packets to process
 
 # KitNET params:
 maxAE = 10 #maximum size for any autoencoder in the ensemble layer
@@ -33,6 +38,42 @@ ADgrace = 50000 #the number of instances used to train the anomaly detector (ens
 # Build Kitsune
 K = Kitsune(path,packet_limit,maxAE,FMgrace,ADgrace)
 
+# 3. SYN-Flood-Angriff parallel starten
+print("Starte SYN-Flood-Angriff parallel...")
+subprocess.Popen(["python", "syn_flood.py"])  # Angriff starten
+
+# 3. RMSE-Werte zwischenspeichern (Caching)
+rmse_cache_file = "rmse_cache.pkl"  # Datei für Zwischenspeicherung der RMSE-Werte
+
+
+# Prüfen, ob Cache vorhanden ist
+if os.path.exists(rmse_cache_file):
+    print("Lade RMSE-Werte aus Cache...")
+    with open(rmse_cache_file, "rb") as f:
+        RMSEs = pickle.load(f)
+    print(f"Geladene RMSE-Werte: {len(RMSEs)}")
+else:
+    print("Starte Kitsune und berechne RMSE-Werte...")
+    RMSEs = []
+    start_time = time.time()
+    i = 0
+    while True:
+        if i % 1000 == 0:
+            print(f"Verarbeite Paket {i}")
+        rmse = K.proc_next_packet()
+        if rmse == -1:
+            break
+        RMSEs.append(rmse)
+        i += 1
+    end_time = time.time()
+    print(f"RMSE-Berechnung abgeschlossen in {end_time - start_time:.2f} Sekunden.")
+
+    # RMSE-Werte speichern
+    print("Speichere RMSE-Werte in Cache...")
+    with open(rmse_cache_file, "wb") as f:
+        pickle.dump(RMSEs, f)
+
+"""
 print("Running Kitsune:")
 RMSEs = []
 i = 0
@@ -49,23 +90,36 @@ while True:
     RMSEs.append(rmse)
 stop = time.time()
 print("Complete. Time elapsed: "+ str(stop - start))
+"""
 
+mean_rmse = np.mean(RMSEs)
+std_rmse = np.std(RMSEs)
+threshold = mean_rmse + 2 * std_rmse  # Dynamischer Schwellenwert
+print(f"Dynamischer Schwellenwert: {threshold:.2f}")
+
+# 6. Analyse: Anomalien erkennen und speichern
+results = pd.DataFrame({"PacketIndex": range(len(RMSEs)), "RMSE": RMSEs})
+results["IsAnomalous"] = results["RMSE"] > threshold
+print(f"Anomalien erkannt: {results['IsAnomalous'].sum()} von {len(results)} Paketen")
+
+# Ergebnisse speichern
+results.to_csv("syn_flood_results.csv", index=False)
+print("Ergebnisse in 'syn_flood_results.csv' gespeichert.")
 
 # Here we demonstrate how one can fit the RMSE scores to a log-normal distribution (useful for finding/setting a cutoff threshold \phi)
 from scipy.stats import norm
 benignSample = np.log(RMSEs[FMgrace+ADgrace+1:100000])
 logProbs = norm.logsf(np.log(RMSEs), np.mean(benignSample), np.std(benignSample))
 
-# plot the RMSE anomaly scores
-print("Plotting results")
-from matplotlib import pyplot as plt
-from matplotlib import cm
-plt.figure(figsize=(10,5))
-fig = plt.scatter(range(FMgrace+ADgrace+1,len(RMSEs)),RMSEs[FMgrace+ADgrace+1:],s=0.1,c=logProbs[FMgrace+ADgrace+1:],cmap='RdYlGn')
-plt.yscale("log")
-plt.title("Anomaly Scores from Kitsune's Execution Phase")
-plt.ylabel("RMSE (log scaled)")
-plt.xlabel("Time elapsed [min]")
-figbar=plt.colorbar()
-figbar.ax.set_ylabel('Log Probability\n ', rotation=270)
+# 7. Visualisierung der RMSE-Werte und Anomalien
+plt.figure(figsize=(10, 6))
+plt.plot(results["PacketIndex"], results["RMSE"], label="RMSE-Werte")
+plt.axhline(y=threshold, color="r", linestyle="--", label=f"Schwellenwert: {threshold:.2f}")
+plt.scatter(results[results["IsAnomalous"] == 1]["PacketIndex"],
+            results[results["IsAnomalous"] == 1]["RMSE"],
+            color="red", label="Anomalien")
+plt.title("RMSE-Werte und erkannte Anomalien (SYN-Flood)")
+plt.xlabel("Paketindex")
+plt.ylabel("RMSE-Wert")
+plt.legend()
 plt.show()
