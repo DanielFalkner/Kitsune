@@ -1,11 +1,11 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# 1. Lade die Kitsune-Ergebnisse
+# Loading Kitsune-Results
 results = pd.read_csv("syn_flood_results.csv")  # Datei von Kitsune
 print(f"Ergebnisse geladen: {len(results)} Pakete")
 
-# 2. Lade die pcap-Daten
+# Loading die pcap-Data
 pcap_data = pd.read_csv("packets.csv", encoding="latin1")
 
 # SYN-Flood-Pakete dynamisch erkennen (nur SYN, kein ACK)
@@ -15,11 +15,11 @@ syn_flood_packets = pcap_data[
     (~pcap_data["Info"].str.contains("ACK"))            # ACK-Flag ist nicht gesetzt
 ]
 
-# Extrahiere die Paketindizes der SYN-Flood-Pakete
+# Extracting the Packet Indices of the SYN-Flood
 syn_flood_indices = syn_flood_packets.index
 print(f"Anzahl erkannter SYN-Flood-Pakete: {len(syn_flood_indices)}")
 
-# 3. Dynamischen Schwellenwert berechnen
+# Dynamischen Schwellenwert berechnen
 mean_rmse = results["RMSE"].mean()  # Durchschnittlicher RMSE-Wert
 std_rmse = results["RMSE"].std()    # Standardabweichung der RMSE-Werte
 
@@ -27,28 +27,28 @@ std_rmse = results["RMSE"].std()    # Standardabweichung der RMSE-Werte
 threshold = mean_rmse + 2 * std_rmse
 print(f"Dynamischer Schwellenwert (Mean + 2*Std): {threshold:.2f}")
 
-# 4. Visualisierung der RMSE-Werte und SYN-Flood-Pakete
+# Visualising
 plt.figure(figsize=(10, 6))
 
-# Plot der RMSE-Werte
+# Plot of the RMSE-Values
 plt.plot(results.index, results["RMSE"], label="RMSE-Werte", alpha=0.7)
 
-# Anomalien basierend auf Schwellenwert
+# Anomalies based on the Threshold
 anomalous_indices = results[results["RMSE"] > threshold].index
 plt.scatter(anomalous_indices, results.loc[anomalous_indices, "RMSE"],
-            color="red", label="Anomalien")
+            color="red", label="Anomaly")
 
-# SYN-Flood-Pakete hervorheben
+# highlighting SYN-Flood-Packets
 plt.scatter(syn_flood_indices, results.loc[syn_flood_indices, "RMSE"],
-            color="orange", label="SYN-Flood-Pakete")
+            color="orange", label="SYN-Flood-Packets")
 
-# Schwellenwert markieren
-plt.axhline(y=threshold, color="r", linestyle="--", label=f"Schwellenwert: {threshold:.2f}")
+# Marking the Threshold
+plt.axhline(y=threshold, color="r", linestyle="--", label=f"Threshold: {threshold:.2f}")
 
-# Diagrammtitel und Beschriftung
-plt.title("RMSE-Werte mit SYN-Flood-Anomalien")
-plt.xlabel("Paketindex")
-plt.ylabel("RMSE-Wert")
+# Beschriftung
+plt.title("RMSE-Values with SYN-Flood-Anomalies")
+plt.xlabel("Packet Indices")
+plt.ylabel("RMSE-Values")
 plt.legend()
 plt.show()
 
