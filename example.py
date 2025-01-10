@@ -11,29 +11,25 @@ import pickle
 # The first 70,000 observations are clean...
 print("Unzipping Sample Capture...")
 import zipfile
-with zipfile.ZipFile("mirai.zip","r") as zip_ref:
+
+with zipfile.ZipFile("mirai.zip", "r") as zip_ref:
     zip_ref.extractall()
 
-
 # File location
-path = "mirai.tsv"  #the pcap, pcapng, or tsv file to process.
-packet_limit = np.inf #the number of packets to process
+path = "mirai.tsv"  # the pcap, pcapng, or tsv file to process.
+# path = "network_traffic.pcap"
+packet_limit = np.inf  # the number of packets to process
 
 # KitNET params:
-maxAE = 10 #maximum size for any autoencoder in the ensemble layer
-FMgrace = 5000 #the number of instances taken to learn the feature mapping (the ensemble's architecture)
-ADgrace = 50000 #the number of instances used to train the anomaly detector (ensemble itself)
+maxAE = 10  # maximum size for any autoencoder in the ensemble layer
+FMgrace = 5000  # the number of instances taken to learn the feature mapping (the ensemble's architecture)
+ADgrace = 50000  # the number of instances used to train the anomaly detector (ensemble itself)
 
 # Build Kitsune
-K = Kitsune(path,packet_limit,maxAE,FMgrace,ADgrace)
-
-# Starting SYN-Flood
-print("Starting SYN-Flood-Angriff parallel...")
-subprocess.Popen(["python", "syn_flood.py"])  # Starts syn_flood.py
+K = Kitsune(path, packet_limit, maxAE, FMgrace, ADgrace)
 
 # Caching RMSE Values
 rmse_cache_file = "rmse_cache.pkl"  # File for RMSE Values
-
 
 if os.path.exists(rmse_cache_file):
     print("Loading RMSE-Values from Cache...")
@@ -59,27 +55,28 @@ else:
     print("Saving RMSE-Values in Cache...")
     with open(rmse_cache_file, "wb") as f:
         pickle.dump(RMSEs, f)
-
 """
-print("Running Kitsune:")
+
+print("Starting Kitsune and calculate RMSE-Values...")
 RMSEs = []
+start_time = time.time()
 i = 0
-start = time.time()
 while True:
-    i+=1
     if i % 1000 == 0:
-        print(i)
+        print(f"Packets: {i}")
     rmse = K.proc_next_packet()
     if rmse == -1:
         break
     RMSEs.append(rmse)
-stop = time.time()
-print("Complete. Time elapsed: "+ str(stop - start))
+    i += 1
+end_time = time.time()
+print(f"Finished RMSE Calculation in {end_time - start_time:.2f} Seconds.")
 """
 
 mean_rmse = np.mean(RMSEs)
 std_rmse = np.std(RMSEs)
 threshold = mean_rmse + 2 * std_rmse  # Vorübergehend dynamisch berechneter Schwellenwert
+threshold = 1
 print(f"Dynamic Threshold: {threshold:.2f}")
 
 # Analysis: Recognizing Anomalies
@@ -87,12 +84,13 @@ results = pd.DataFrame({"PacketIndex": range(len(RMSEs)), "RMSE": RMSEs})
 results["IsAnomalous"] = results["RMSE"] > threshold
 print(f"Anomalien erkannt: {results['IsAnomalous'].sum()} von {len(results)} Paketen")
 
-results.to_csv("syn_flood_results.csv", index=False)
-print("Ergebnisse in 'syn_flood_results.csv' gespeichert.")
+results.to_csv("RMSE_results.csv", index=False)
+print("Ergebnisse in 'RMSE_results.csv' gespeichert.")
 
 # RMSE scores to a log-normal distribution (useful for finding/setting a cutoff threshold \phi)
 from scipy.stats import norm
-benignSample = np.log(RMSEs[FMgrace+ADgrace+1:100000])
+
+benignSample = np.log(RMSEs[FMgrace + ADgrace + 1:100000])
 logProbs = norm.logsf(np.log(RMSEs), np.mean(benignSample), np.std(benignSample))
 
 # Visualising
