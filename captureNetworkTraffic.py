@@ -22,17 +22,17 @@ def generate_dummy_traffic(target_ip, target_port, packet_count, interface):
 
 
 if __name__ == "__main__":
-    output_file = "network_traffic.pcap"  # Name der Ausgabe-Datei
-    capture_duration = 600  # Dauer der Aufzeichnung in Sekunden
+    output_file = "network_traffic.pcap"
+    capture_duration = 600  # Dauer in Sekunden
     target_ip = "192.168.0.179"  # Host Laptop "192.168.0.1", LinuxVM "192.168.0.179"
-    target_port = 80  # Ziel-Port
-    dummy_packet_count = 5000  # Anzahl der Dummy-Pakete
-    interface = "enp0s3"  #In Windows "WLAN", für Linux "enp0s3"
+    target_port = 80
+    dummy_packet_count = 5000
+    interface = "enp0s3"  # In Windows "WLAN", für Linux "enp0s3"
 
     # Starte die Dummy-Daten-Generierung in einem separaten Thread
-#    dummy_thread = threading.Thread(target=generate_dummy_traffic,
-#                                    args=(target_ip, target_port, dummy_packet_count, interface))
-#    dummy_thread.start()
+    #    dummy_thread = threading.Thread(target=generate_dummy_traffic,
+    #                                    args=(target_ip, target_port, dummy_packet_count, interface))
+    #    dummy_thread.start()
     # Netzwerkverkehr aufzeichnen
     capture_traffic(output_file, capture_duration, interface)
 

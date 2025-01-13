@@ -56,7 +56,6 @@ else:
     with open(rmse_cache_file, "wb") as f:
         pickle.dump(RMSEs, f)
 """
-
 print("Starting Kitsune and calculate RMSE-Values...")
 RMSEs = []
 start_time = time.time()

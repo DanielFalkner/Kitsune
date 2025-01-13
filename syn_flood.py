@@ -15,8 +15,8 @@ def syn_flood(target_ip, target_port, packet_count, interval, interface):
 
 if __name__ == "__main__":
     target_ip = "192.168.0.1"  # Loopback-Adresse
-    target_port = 80  # Ziel-Port
-    packet_count = 10000  # Anzahl der zu sendenden Pakete
+    target_port = 80
+    packet_count = 10000
     interval = 0.00001  # Intervall zwischen Paketen
     interface = "WLAN"
 
