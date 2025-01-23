@@ -37,6 +37,8 @@ class Kitsune:
             self.FE = FE(file_path, limit)
 
         # init Kitnet
+        num_features = self.FE.get_num_features()
+        print(f"Anzahl der erwarteten Features: {num_features}")
         self.AnomDetector = KitNET(self.FE.get_num_features(), max_autoencoder_size, FM_grace_period, AD_grace_period,
                                    learning_rate, hidden_ratio)
 
@@ -55,7 +57,6 @@ class Kitsune:
     """
 
     def proc_next_packet(self, packet):
-        print(f"Paket erhalten KITSUNE: {packet.summary()}")
         try:
             if packet is None:
                 # Kein Paket verfügbar, kurze Pause einlegen

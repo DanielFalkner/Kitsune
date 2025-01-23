@@ -46,38 +46,56 @@ class RealTimeFeatureExtractor:
 
     def get_num_features(self):
         num_features = len(self.nstat.getNetStatHeaders())
-        return min(num_features, 64)  # Begrenze die Anzahl der Features auf 64
+#        print(f"NetStat Headers: {self.nstat.getNetStatHeaders()}")  # Debugging-Ausgabe für die Header
+#        print(f"Anzahl der Header: {num_features}")  # Debugging-Ausgabe für die Anzahl der Header
+        return min(num_features, 100)  # Begrenze die Anzahl der Features auf 64
 
     def get_next_vector(self, packet):
-        print(f"Paket erhalten FE: {packet.summary()}")
         try:
             # Überprüfen, ob das Paket notwendig ist
             if packet is None:
+                print("Warnung: Kein Paket erhalten. Vektor wird nicht generiert.")
+                return None
+
+            print(f"Verarbeite Paket {self.cur_packet_index}...")
+            self.cur_packet_index += 1
+
+            # Überprüfen, ob das Paket eine IP-Schicht enthält
+            if IP not in packet:
+                print("Kein IP-Paket. Übersprungen.")
                 return None
 
             # Felder extrahieren
-            IPtype = packet[IP].version if IP in packet else None
-            srcMAC = packet.src if hasattr(packet, 'src') else None
-            dstMAC = packet.dst if hasattr(packet, 'dst') else None
+            IPtype = 4 if IP in packet else 6 if IPv6 in packet else None
+            srcMAC = getattr(packet, 'src', '00:00:00:00:00:00')
+            dstMAC = getattr(packet, 'dst', '00:00:00:00:00:00')
             srcIP = packet[IP].src if IP in packet else None
             dstIP = packet[IP].dst if IP in packet else None
             srcProtocol = packet[IP].proto if IP in packet else None
             dstProtocol = packet[TCP].dport if TCP in packet else None
-            datagramSize = len(packet) if hasattr(packet, '__len__') else 0
-            timestamp = packet.time if hasattr(packet, 'time') else None
+            datagramSize = len(packet) if packet else 0
+            timestamp = getattr(packet, 'time', 0)
 
             # Nur Pakete weiterverarbeiten, die für das Gerät bestimmt sind - Funktioniert nicht
- #           if dstIP != self.targetIP:
-  #             return None
+#            if packet.get('dstIP') != self.targetIP:
+#                print("Paket nicht für Target-IP. Übersprungen.")
+#                return None
 
-            # Debugging-Ausgaben müssen hier eingefügt werden. Type Issues hier
+            # Falls wichtige Felder fehlen, überspringe das Paket
+            if None in [srcIP, dstIP, srcProtocol, dstProtocol]:
+                print("Ein oder mehrere notwendige Felder sind None. Paket wird übersprungen.")
+                return None
 
             # Statistiken aktualisieren
-            vector = self.nstat.updateGetStats(IPtype, srcMAC, dstMAC, srcIP, srcProtocol, dstIP, dstProtocol, datagramSize,
+            vector = self.nstat.updateGetStats(str(IPtype), srcMAC, dstMAC, srcIP, str(srcProtocol), dstIP, str(dstProtocol), datagramSize,
                                       timestamp)
 
             if vector is None or len(vector) == 0:
+                print("Warnung: Kein Vektor generiert.")
                 return None
+
+#            print(f"Generierter Vektor: {vector}")
+#            print(f"Länge des generierten Vektors: {len(vector)}")
             return vector
 
         except Exception as e:
