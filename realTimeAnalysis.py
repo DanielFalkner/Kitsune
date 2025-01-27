@@ -14,8 +14,8 @@ def main():
 
     interface = "WLAN"  # Netzwerkschnittstelle, die überwacht werden soll
     target_ip = get_host_ip()  # IP-Adresse des Zielhosts
+    print(f"IP-Adresse des Hosts: {target_ip}")
     kitsune = Kitsune(path, packet_limit, max_autoencoder_size, FM_grace, AD_grace)
-    kitsune.FE.target_ip = target_ip
 
     def handle_packet(packet):
         if packet is None:
