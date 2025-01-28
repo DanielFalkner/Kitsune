@@ -12,7 +12,8 @@ def main():
     AD_grace = 5000  # Anzahl Pakete für Anomaly Detection Grace Period
     max_autoencoder_size = 10  # Maximale Größe des Autoencoders
 
-    interface = "WLAN"  # Netzwerkschnittstelle, die überwacht werden soll
+    # interface = "WLAN"  # Netzwerkschnittstelle vom Host Laptop
+    interface = "enp0s3"  # Netzwerkschnittstelle von der VM
     target_ip = get_host_ip()  # IP-Adresse des Zielhosts
     print(f"IP-Adresse des Hosts: {target_ip}")
     kitsune = Kitsune(path, packet_limit, max_autoencoder_size, FM_grace, AD_grace)
