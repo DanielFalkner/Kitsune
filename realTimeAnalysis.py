@@ -2,18 +2,20 @@ import numpy as np
 import socket
 from scapy.all import sniff
 from Kitsune import Kitsune
+from thresholdCalculator import ThresholdCalculator
 
 
 def main():
     # Parameter für Kitsune
     path = "real_time"  # Echtzeitmodus
     packet_limit = np.inf  # Keine Begrenzung der Pakete
-    FM_grace = 500  # Anzahl Pakete für Feature Mapping Grace Period
-    AD_grace = 5000  # Anzahl Pakete für Anomaly Detection Grace Period
+    FM_grace = 50  # Anzahl Pakete für Feature Mapping Grace Period
+    AD_grace = 500  # Anzahl Pakete für Anomaly Detection Grace Period
     max_autoencoder_size = 10  # Maximale Größe des Autoencoders
 
-    # interface = "WLAN"  # Netzwerkschnittstelle vom Host Laptop
-    interface = "enp0s3"  # Netzwerkschnittstelle von der VM
+    interface = "WLAN"  # Netzwerkschnittstelle vom Host Laptop
+    # interface = "enp0s3"  # Netzwerkschnittstelle von der VM
+    threshold_calculator = ThresholdCalculator(FM_grace + AD_grace)
     target_ip = get_host_ip()  # IP-Adresse des Zielhosts
     print(f"IP-Adresse des Hosts: {target_ip}")
     kitsune = Kitsune(path, packet_limit, max_autoencoder_size, FM_grace, AD_grace)
@@ -28,6 +30,9 @@ def main():
             rmse = kitsune.proc_next_packet(packet)
             if rmse is not None and rmse != -1:
                 print(f"RMSE: {rmse}")
+                threshold = threshold_calculator.handle_rmse(rmse)
+                if threshold is not None and rmse > threshold:
+                    print("Anomalie erkannt!")
             else:
                 print("Kein RMSE-Wert verfügbar oder Grace Period aktiv.")
         except Exception as e:
