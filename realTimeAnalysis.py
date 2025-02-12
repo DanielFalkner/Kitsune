@@ -3,6 +3,9 @@ import socket
 from scapy.all import sniff
 from Kitsune import Kitsune
 from thresholdCalculator import ThresholdCalculator
+from edgeDevice import EdgeDevice
+import threading
+import json
 
 
 def main():
@@ -19,6 +22,10 @@ def main():
     target_ip = get_host_ip()  # IP-Adresse des Zielhosts
     print(f"IP-Adresse des Hosts: {target_ip}")
     kitsune = Kitsune(path, packet_limit, max_autoencoder_size, FM_grace, AD_grace)
+    # EdgeDevice initialisieren und mit Kitsune verbinden
+    edge_device = EdgeDevice(server_url="http://127.0.0.1:5000", device_id="edge_1", kitsune_instance=kitsune)
+    # Das Senden der Gewichte im Hintergrund starten
+#    threading.Thread(target=edge_device.start_sending, daemon=True).start()
 
     def handle_packet(packet):
         if packet is None:
