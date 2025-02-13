@@ -4,7 +4,7 @@ import numpy as np
 
 
 class EdgeDevice:
-    def __init__(self, server_url, device_id, kitsune_instance, send_interval=10):
+    def __init__(self, server_url, device_id, kitsune_instance, send_interval=60):
         """
         :param server_url: URL des Servers, an den die Gewichte gesendet werden
         :param device_id: Eindeutige ID des Edge Devices

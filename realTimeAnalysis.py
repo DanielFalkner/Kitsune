@@ -25,7 +25,7 @@ def main():
     # EdgeDevice initialisieren und mit Kitsune verbinden
     edge_device = EdgeDevice(server_url="http://127.0.0.1:5000", device_id="edge_1", kitsune_instance=kitsune)
     # Das Senden der Gewichte im Hintergrund starten
-#    threading.Thread(target=edge_device.start_sending, daemon=True).start()
+    threading.Thread(target=edge_device.start_sending, daemon=True).start()
 
     def handle_packet(packet):
         if packet is None:
