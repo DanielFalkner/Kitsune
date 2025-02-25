@@ -1,10 +1,12 @@
+import socket
+
 import requests
 import time
 import numpy as np
 
 
 class EdgeDevice:
-    def __init__(self, server_url, device_id, kitsune_instance, send_interval=60):
+    def __init__(self, server_url, kitsune_instance, send_interval=60):
         """
         :param server_url: URL des Servers, an den die Gewichte gesendet werden
         :param device_id: Eindeutige ID des Edge Devices
@@ -12,9 +14,11 @@ class EdgeDevice:
         :param send_interval: Intervall in Sekunden, in dem die Gewichte gesendet werden
         """
         self.server_url = server_url
-        self.device_id = device_id
+        self.device_id = socket.gethostname()
         self.kitnet = kitsune_instance.AnomDetector  # Verwende KitNET aus Kitsune
         self.send_interval = send_interval
+
+        print(f"[Edge Device] Starte mit ID: {self.device_id}")
 
     def get_model_weights(self):
         """Extrahiert die Gewichte aller Autoencoder aus dem KitNET-Modell"""

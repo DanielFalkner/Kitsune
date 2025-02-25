@@ -8,12 +8,17 @@ received_weights = {}
 
 
 def aggregate_weights():
-    """Berechnet den Mittelwert der empfangenen Gewichte"""
+    """Berechnet den Mittelwert der empfangenen Gewichte, inklusive hbias und vbias, mit Debugging"""
     if not received_weights:
         print("[Server] Keine empfangenen Gewichte, Aggregation übersprungen.")
         return {}
 
     aggregated_weights = {}
+
+    # Zähler für übersprungene Werte
+    skipped_W = 0
+    skipped_hbias = 0
+    skipped_vbias = 0
 
     # Initialisiere aggregierte Gewichte mit den Keys des ersten Geräts
     first_device = list(received_weights.keys())[0]
@@ -21,47 +26,69 @@ def aggregate_weights():
 
     for key in received_weights[first_device]:
         weight_arrays = []
+        hbias_arrays = []
+        vbias_arrays = []
 
         for device in received_weights:
             value = received_weights[device][key]
-            print(f"[Server] Debug: Wert für {key} von {device} - Typ: {type(value)}, Inhalt: {value}")
 
             if isinstance(value, dict):
-                # Prüfe, ob es ein Dictionary mit 'W', 'hbias', 'vbias' ist
                 if "W" in value and "hbias" in value and "vbias" in value:
-                    value = np.array(value["W"])  # Nehme nur die Gewichtsmatrix
+                    try:
+                        weight_arrays.append(np.array(value["W"], dtype=np.float64))
+                        hbias_arrays.append(np.array(value["hbias"], dtype=np.float64))
+                        vbias_arrays.append(np.array(value["vbias"], dtype=np.float64))
+                    except ValueError:
+                        print(f"[Server] ❌ Ungültige Werte für {key} von {device}, überspringe.")
+                        continue
                 else:
-                    print(f"[Server] ⚠ Unerwartete Struktur für {key} von {device}: {value}")
-                    continue
-
-            # Falls Wert eine Liste oder ein NumPy-Array ist, hinzufügen
-            if isinstance(value, (list, np.ndarray)):
-                try:
-                    weight_arrays.append(
-                        np.array(value, dtype=np.float64))  # Sicherstellen, dass alle Werte floats sind
-                except ValueError:
-                    print(f"[Server] Ungültige Datenstruktur für {key} von {device}, überspringe.")
+                    print(f"[Server] ❌ Fehlende Werte für {key} von {device}, überspringe.")
                     continue
 
         if not weight_arrays:
-            print(f"[Server] Keine gültigen Werte für {key}, überspringe.")
+            skipped_W += 1
+            print(f"[Server] ⚠ Keine gültigen Werte für {key} - W, übersprungen.")
+            continue
+        if not hbias_arrays:
+            skipped_hbias += 1
+            print(f"[Server] ⚠ Keine gültigen Werte für {key} - hbias, übersprungen.")
+            continue
+        if not vbias_arrays:
+            skipped_vbias += 1
+            print(f"[Server] ⚠ Keine gültigen Werte für {key} - vbias, übersprungen.")
             continue
 
-        # Prüfen, ob alle Werte die gleiche Form haben
+        # Prüfen, ob alle Shapes gleich sind
         if not all(arr.shape == weight_arrays[0].shape for arr in weight_arrays):
-            print(f"[Server] Unterschiedliche Shapes für {key}, Aggregation übersprungen.")
+            skipped_W += 1
+            print(f"[Server] ❌ Unterschiedliche Shapes für {key} - W, Aggregation übersprungen.")
+            continue
+        if not all(arr.shape == hbias_arrays[0].shape for arr in hbias_arrays):
+            skipped_hbias += 1
+            print(f"[Server] ❌ Unterschiedliche Shapes für {key} - hbias, Aggregation übersprungen.")
+            continue
+        if not all(arr.shape == vbias_arrays[0].shape for arr in vbias_arrays):
+            skipped_vbias += 1
+            print(f"[Server] ❌ Unterschiedliche Shapes für {key} - vbias, Aggregation übersprungen.")
             continue
 
-        mean_values = np.mean(weight_arrays, axis=0)
+        # Mittelwert berechnen
+        aggregated_weights[key] = {
+            "W": np.mean(weight_arrays, axis=0).tolist(),
+            "hbias": np.mean(hbias_arrays, axis=0).tolist(),
+            "vbias": np.mean(vbias_arrays, axis=0).tolist()
+        }
 
-        # Falls der Mittelwert ein einzelner Wert ist, in eine Liste umwandeln
-        if isinstance(mean_values, np.ndarray):
-            aggregated_weights[key] = mean_values.tolist()
-        else:
-            aggregated_weights[key] = [mean_values]
+    print(f"\n[Server] ✅ Aggregation abgeschlossen!")
+    print(f"[Server] 🔍 Übersprungene Werte:")
+    print(f"    - W: {skipped_W} Mal übersprungen")
+    print(f"    - hbias: {skipped_hbias} Mal übersprungen")
+    print(f"    - vbias: {skipped_vbias} Mal übersprungen")
+    print(f"[Server] ✅ Endgültige aggregierte Gewichte: {aggregated_weights}\n")
 
-    print(f"[Server] Aggregierte Gewichte: {aggregated_weights}")
     return aggregated_weights
+
+
 
 
 @app.route('/upload_weights', methods=['POST'])
