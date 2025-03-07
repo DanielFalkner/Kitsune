@@ -16,8 +16,9 @@ def main():
     AD_grace = 500  # Anzahl Pakete für Anomaly Detection Grace Period
     max_autoencoder_size = 10  # Maximale Größe des Autoencoders
 
-    interface = "WLAN"  # Netzwerkschnittstelle vom Host Laptop
+    # interface = "WLAN"  # Netzwerkschnittstelle vom Host Laptop
     # interface = "enp0s3"  # Netzwerkschnittstelle von der VM
+    interface = "wlan0"  # Netzwerkschnittstelle vom Raspberry Pi
     threshold_calculator = ThresholdCalculator(FM_grace + AD_grace)
     target_ip = get_host_ip()  # IP-Adresse des Zielhosts
     print(f"IP-Adresse des Hosts: {target_ip}")
