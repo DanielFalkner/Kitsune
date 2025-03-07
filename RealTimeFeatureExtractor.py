@@ -60,11 +60,11 @@ class RealTimeFeatureExtractor:
 
             # Nur Pakete weiterverarbeiten, die für das Gerät bestimmt sind
             # Entweder so lassen oder das ganze Netzwerk analysieren
-            """
+
             if dstIP != self.targetIP:
                 print("Paket nicht für Target-IP. Übersprungen.")
                 return None
-            """
+
             return self.nstat.updateGetStats(
                 str(IPtype), srcMAC, dstMAC, srcIP, str(srcproto), dstIP, str(dstproto),
                 framelen, timestamp
