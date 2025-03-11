@@ -12,8 +12,8 @@ def main():
     # Parameter für Kitsune
     path = "real_time"  # Echtzeitmodus
     packet_limit = np.inf  # Keine Begrenzung der Pakete
-    FM_grace = 500  # Anzahl Pakete für Feature Mapping Grace Period
-    AD_grace = 5000  # Anzahl Pakete für Anomaly Detection Grace Period
+    FM_grace = 50  # Anzahl Pakete für Feature Mapping Grace Period
+    AD_grace = 500  # Anzahl Pakete für Anomaly Detection Grace Period
     max_autoencoder_size = 10  # Maximale Größe des Autoencoders
 
     # interface = "WLAN"  # Netzwerkschnittstelle vom Host Laptop

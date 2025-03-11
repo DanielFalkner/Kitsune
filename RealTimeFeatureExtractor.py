@@ -60,7 +60,7 @@ class RealTimeFeatureExtractor:
 
             # Nur Pakete weiterverarbeiten, die für das Gerät bestimmt sind
             # Entweder so lassen oder das ganze Netzwerk analysieren
-
+            print(f"Target-IP: {self.targetIP}, Empfangenes Paket für: {dstIP}")
             if dstIP != self.targetIP:
                 print("Paket nicht für Target-IP. Übersprungen.")
                 return None
