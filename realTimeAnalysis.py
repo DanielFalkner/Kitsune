@@ -13,8 +13,9 @@ def main():
     # Parameter für Kitsune
     path = "real_time"  # Echtzeitmodus
     packet_limit = np.inf  # Keine Begrenzung der Pakete
-    FM_grace = 50  # Anzahl Pakete für Feature Mapping Grace Period
-    AD_grace = 500  # Anzahl Pakete für Anomaly Detection Grace Period
+    #NUR AUS TESTZWECKEN FÜR DIE WEIGHT AGGREGATION SO NIEDRIG
+    FM_grace = 10  # Anzahl Pakete für Feature Mapping Grace Period
+    AD_grace = 100  # Anzahl Pakete für Anomaly Detection Grace Period
     max_autoencoder_size = 10  # Maximale Größe des Autoencoders
 
     # interface = "WLAN"  # Netzwerkschnittstelle vom Host Laptop
@@ -26,7 +27,7 @@ def main():
     print(f"IP-Adresse des Hosts: {target_ip}")
     kitsune = Kitsune(path, packet_limit, max_autoencoder_size, FM_grace, AD_grace)
     # EdgeDevice initialisieren und mit Kitsune verbinden
-    edge_device = EdgeDevice(server_url="http://127.0.0.1:5000", kitsune_instance=kitsune)
+    edge_device = EdgeDevice(server_url="http://192.168.0.163:5000", kitsune_instance=kitsune)
 
     """
     def handle_packet(packet):
