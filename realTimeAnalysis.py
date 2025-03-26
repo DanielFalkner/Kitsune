@@ -6,6 +6,8 @@ from edgeDevice import EdgeDevice
 import threading
 import subprocess
 
+sending_started = False
+
 
 def main():
     # Parameter für Kitsune
@@ -25,8 +27,6 @@ def main():
     kitsune = Kitsune(path, packet_limit, max_autoencoder_size, FM_grace, AD_grace)
     # EdgeDevice initialisieren und mit Kitsune verbinden
     edge_device = EdgeDevice(server_url="http://127.0.0.1:5000", kitsune_instance=kitsune)
-    # Das Senden der Gewichte im Hintergrund starten
-    threading.Thread(target=edge_device.start_sending, daemon=True).start()
 
     """
     def handle_packet(packet):
@@ -49,6 +49,7 @@ def main():
     """
 
     def handle_packet(packet):
+        global sending_started
         """Verarbeitet empfangene Pakete, falls sie für das Edge Device bestimmt sind"""
         if packet is None:
             print("Kein Paket erhalten.")
@@ -97,6 +98,11 @@ def main():
             if dst_ip == target_ip or (target_ipv6 and dst_ip == target_ipv6):
                 print(f"{protocol}-Paket an {dst_ip}:{dst_port} erhalten!")
                 rmse = kitsune.proc_next_packet(packet)
+
+                if not sending_started and rmse is not None and rmse > 0.0:
+                    print("[edgeDevice] Grace Period vorbei. Starte Sende-Thread.")
+                    threading.Thread(target=edge_device.start_sending, daemon=True).start()
+                    sending_started = True
 
                 if rmse is not None and rmse != -1:
                     print(f"RMSE: {rmse}")
