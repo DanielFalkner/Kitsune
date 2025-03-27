@@ -233,10 +233,9 @@ def upload_weights():
         print(f"[Server ERROR] Fehler beim Empfangen der Gewichte: {e}")
         return jsonify({"error": str(e)}), 500
 
-
+"""
 @app.route('/get_aggregated_weights', methods=['GET'])
 def get_aggregated_weights():
-    """Sendet die aggregierten Gewichte an die Edge Devices zurück"""
     aggregated_weights = aggregate_weights()
 
     print(f"[Server] API sendet aggregierte Gewichte: {aggregated_weights}")
@@ -245,6 +244,14 @@ def get_aggregated_weights():
         return jsonify({"error": "Noch keine Gewichte verfügbar"}), 400
 
     return jsonify({"aggregated_weights": aggregated_weights}), 200
+"""
+@app.route('/get_aggregated_weights', methods=['GET'])
+def get_aggregated_weights():
+    if not last_aggregated_weights:
+        return jsonify({"error": "Noch keine Gewichte verfügbar"}), 404
+
+    print("[Server] API sendet aggregierte Gewichte.")
+    return jsonify(last_aggregated_weights), 200
 
 
 if __name__ == '__main__':
