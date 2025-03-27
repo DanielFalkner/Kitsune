@@ -7,7 +7,7 @@ app = Flask(__name__)
 received_weights = {}
 last_aggregated_weights = {}
 
-
+"""
 def aggregate_weights():
     if not received_weights:
         print("[Server] Keine empfangenen Gewichte, Aggregation übersprungen.")
@@ -87,7 +87,82 @@ def aggregate_weights():
     print(f"[Server] ✅ Endgültige aggregierte Gewichte: {aggregated_weights}\n")
 
     return aggregated_weights
+"""
+def aggregate_weights():
+    if not received_weights:
+        print("[Server] Keine empfangenen Gewichte, Aggregation übersprungen.")
+        return {}
 
+    aggregated_weights = {}
+
+    # Alle vorhandenen Layer-Keys über alle Geräte sammeln
+    all_keys = set()
+    for device_weights in received_weights.values():
+        all_keys.update(device_weights.keys())
+
+    print(f"[Server] Aggregation gestartet auf Basis von {len(received_weights)} Geräten.")
+    skipped_W = skipped_hbias = skipped_vbias = 0
+
+    for key in sorted(all_keys):
+        weight_arrays = []
+        hbias_arrays = []
+        vbias_arrays = []
+
+        for device_id, weights in received_weights.items():
+            if key not in weights:
+                print(f"[Server] Schlüssel '{key}' fehlt bei Gerät {device_id}, überspringe diesen Layer.")
+                continue
+
+            value = weights[key]
+
+            if not isinstance(value, dict):
+                print(f"[Server] Ungültige Struktur bei {key} von {device_id}, übersprungen.")
+                continue
+
+            try:
+                weight_arrays.append(np.array(value["W"], dtype=np.float64))
+                hbias_arrays.append(np.array(value["hbias"], dtype=np.float64))
+                vbias_arrays.append(np.array(value["vbias"], dtype=np.float64))
+            except KeyError:
+                print(f"[Server] Fehlende Werte bei {key} von {device_id}, übersprungen.")
+                continue
+            except ValueError:
+                print(f"[Server] Nicht konvertierbare Werte bei {key} von {device_id}, übersprungen.")
+                continue
+
+        # Prüfen auf ausreichende Anzahl und gleiche Shapes
+        if len(weight_arrays) < 2:
+            print(f"[Server] Nicht genügend gültige Werte für Layer '{key}', Aggregation übersprungen.")
+            continue
+
+        if not all(arr.shape == weight_arrays[0].shape for arr in weight_arrays):
+            print(f"[Server] Unterschiedliche Shapes bei '{key}' - W, Aggregation übersprungen.")
+            skipped_W += 1
+            continue
+        if not all(arr.shape == hbias_arrays[0].shape for arr in hbias_arrays):
+            print(f"[Server] Unterschiedliche Shapes bei '{key}' - hbias, Aggregation übersprungen.")
+            skipped_hbias += 1
+            continue
+        if not all(arr.shape == vbias_arrays[0].shape for arr in vbias_arrays):
+            print(f"[Server] Unterschiedliche Shapes bei '{key}' - vbias, Aggregation übersprungen.")
+            skipped_vbias += 1
+            continue
+
+        # Mittelwert berechnen
+        aggregated_weights[key] = {
+            "W": np.mean(weight_arrays, axis=0).tolist(),
+            "hbias": np.mean(hbias_arrays, axis=0).tolist(),
+            "vbias": np.mean(vbias_arrays, axis=0).tolist()
+        }
+
+    print(f"\n[Server] Aggregation abgeschlossen.")
+    print(f"[Server] Übersprungene Layer:")
+    print(f"    - W: {skipped_W}")
+    print(f"    - hbias: {skipped_hbias}")
+    print(f"    - vbias: {skipped_vbias}")
+    print(f"[Server] Aggregiertes Modell enthält {len(aggregated_weights)} Layer.\n")
+
+    return aggregated_weights
 
 """
 @app.route('/upload_weights', methods=['POST'])
