@@ -58,9 +58,8 @@ class EdgeDevice:
             print(f"[{self.device_id}] Gewichte erfolgreich aktualisiert.")
         except Exception as e:
             print(f"[{self.device_id}] Fehler beim Setzen der Gewichte: {e}")
-
+    """
     def send_weights(self):
-        """Sendet die Gewichte an den Server"""
         try:
             payload = {
                 "device_id": self.device_id,
@@ -70,6 +69,26 @@ class EdgeDevice:
             print(f"[{self.device_id}] Antwort des Servers: {response.json()}")
         except Exception as e:
             print(f"[{self.device_id}] Fehler beim Senden der Gewichte: {e}")
+    """
+
+    def send_weights(self):
+        """Sendet lokale Gewichte an den Server und aktualisiert das Modell mit der Antwort"""
+        try:
+            payload = {
+                "device_id": self.device_id,
+                "weights": self.get_model_weights()
+            }
+            response = requests.post(f"{self.server_url}/upload_weights", json=payload)
+
+            if response.status_code == 200:
+                aggregated_weights = response.json()
+                print(f"[{self.device_id}] Aggregierte Gewichte empfangen. Modell wird aktualisiert.")
+                self.set_model_weights(aggregated_weights)
+            else:
+                print(f"[{self.device_id}] Unerwartete Server-Antwort ({response.status_code}): {response.text}")
+
+        except Exception as e:
+            print(f"[{self.device_id}] Fehler beim Senden oder Aktualisieren der Gewichte: {e}")
 
     def start_sending(self):
         """Startet das regelmäßige Senden der Gewichte"""

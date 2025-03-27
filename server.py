@@ -5,10 +5,10 @@ app = Flask(__name__)
 
 # Temporäre Speicherung der empfangenen Gewichte
 received_weights = {}
+last_aggregated_weights = {}
 
 
 def aggregate_weights():
-    """Berechnet den Mittelwert der empfangenen Gewichte, inklusive hbias und vbias, mit Debugging"""
     if not received_weights:
         print("[Server] Keine empfangenen Gewichte, Aggregation übersprungen.")
         return {}
@@ -89,11 +89,9 @@ def aggregate_weights():
     return aggregated_weights
 
 
-
-
+"""
 @app.route('/upload_weights', methods=['POST'])
 def upload_weights():
-    """Empfängt Gewichte von einem Edge Device"""
     try:
         data = request.json
         device_id = data.get("device_id")
@@ -108,6 +106,54 @@ def upload_weights():
         print("Uploaded_weights funktioniert und gibt nicht noch extra weights aus")
 
         return jsonify({"message": "Gewichte erfolgreich empfangen"}), 200
+    except Exception as e:
+        print(f"[Server ERROR] Fehler beim Empfangen der Gewichte: {e}")
+        return jsonify({"error": str(e)}), 500
+"""
+
+
+@app.route('/upload_weights', methods=['POST'])
+def upload_weights():
+    """Empfängt Gewichte von einem Edge Device, aggregiert alle empfangenen und sendet sie zurück"""
+    try:
+        data = request.json
+        device_id = data.get("device_id")
+        weights = data.get("weights")
+
+        if not device_id or not weights:
+            return jsonify({"error": "Ungültige Daten"}), 400
+
+        received_weights[device_id] = weights
+        print(f"[Server] Gewichte empfangen von {device_id}")
+
+        # Warten, bis mindestens 2 verschiedene Geräte Gewichte gesendet haben
+        if len(received_weights) < 2:
+            print("[Server] Nicht genügend Geräte für Aggregation. Warte auf weitere.")
+            return jsonify({"info": "Aggregation wird später durchgeführt."}), 202
+
+        aggregated_weights = aggregate_weights()
+        received_weights.clear()
+
+        # Unterschied zum vorherigen Modell messen
+        global last_aggregated_weights
+        if last_aggregated_weights:
+            print("[Server] Veränderung gegenüber vorherigem globalem Modell:")
+            for key in aggregated_weights:
+                if key in last_aggregated_weights:
+                    try:
+                        diff = np.linalg.norm(
+                            np.array(aggregated_weights[key]["W"]) - np.array(last_aggregated_weights[key]["W"])
+                        )
+                        print(f"- {key} (W): Δ = {diff:.6f}")
+                    except Exception as e:
+                        print(f"- {key}: Fehler beim Vergleich: {e}")
+        else:
+            print("[Server] Erstes globales Modell gespeichert.")
+
+        last_aggregated_weights = aggregated_weights.copy()
+
+        return jsonify(aggregated_weights), 200
+
     except Exception as e:
         print(f"[Server ERROR] Fehler beim Empfangen der Gewichte: {e}")
         return jsonify({"error": str(e)}), 500
