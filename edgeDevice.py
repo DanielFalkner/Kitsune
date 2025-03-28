@@ -5,26 +5,21 @@ import time
 import numpy as np
 
 
+# Represents an Edge Device, which sends model weights periodically to a server
+# and receives aggregated weights from the server to update local model
 class EdgeDevice:
     def __init__(self, server_url, kitsune_instance, send_interval=60):
-        """
-        :param server_url: URL des Servers, an den die Gewichte gesendet werden
-        :param device_id: Eindeutige ID des Edge Devices
-        :param kitsune_instance: Instanz von Kitsune, die KitNET enthält
-        :param send_interval: Intervall in Sekunden, in dem die Gewichte gesendet werden
-        """
         self.server_url = server_url
         self.device_id = socket.gethostname()
-        self.kitnet = kitsune_instance.AnomDetector  # Verwende KitNET aus Kitsune
-        self.send_interval = send_interval
+        self.kitnet = kitsune_instance.AnomDetector  # Uses KitNET from Kitsune
+        self.send_interval = send_interval  # Time interval between sending model weights in seconds
 
         print(f"[Edge Device] Starte mit ID: {self.device_id}")
 
     def get_model_weights(self):
-        """Extrahiert die Gewichte aller Autoencoder aus dem KitNET-Modell"""
         weights_dict = {}
 
-        # Ensemble Layer Gewichte
+        # Extract weights from the ensemble layer
         for i, autoencoder in enumerate(self.kitnet.ensembleLayer):
             weights_dict[f"autoencoder_{i}"] = {
                 "W": autoencoder.W.tolist(),
@@ -32,7 +27,7 @@ class EdgeDevice:
                 "vbias": autoencoder.vbias.tolist()
             }
 
-        # Output Layer Gewichte
+        # Extract weights from the output layer
         weights_dict["output_layer"] = {
             "W": self.kitnet.outputLayer.W.tolist(),
             "hbias": self.kitnet.outputLayer.hbias.tolist(),
@@ -42,15 +37,14 @@ class EdgeDevice:
         return weights_dict
 
     def set_model_weights(self, new_weights):
-        """Setzt die Gewichte des KitNET-Modells mit neuen Werten"""
         try:
-            # Ensemble Layer aktualisieren
+            # Update ensemble layer with new weights
             for i, autoencoder in enumerate(self.kitnet.ensembleLayer):
                 autoencoder.W = np.array(new_weights[f"autoencoder_{i}"]["W"])
                 autoencoder.hbias = np.array(new_weights[f"autoencoder_{i}"]["hbias"])
                 autoencoder.vbias = np.array(new_weights[f"autoencoder_{i}"]["vbias"])
 
-            # Output Layer aktualisieren
+            # Update output layer with new weights
             self.kitnet.outputLayer.W = np.array(new_weights["output_layer"]["W"])
             self.kitnet.outputLayer.hbias = np.array(new_weights["output_layer"]["hbias"])
             self.kitnet.outputLayer.vbias = np.array(new_weights["output_layer"]["vbias"])
@@ -58,22 +52,10 @@ class EdgeDevice:
             print(f"[{self.device_id}] Gewichte erfolgreich aktualisiert.")
         except Exception as e:
             print(f"[{self.device_id}] Fehler beim Setzen der Gewichte: {e}")
-    """
-    def send_weights(self):
-        try:
-            payload = {
-                "device_id": self.device_id,
-                "weights": self.get_model_weights()
-            }
-            response = requests.post(f"{self.server_url}/upload_weights", json=payload)
-            print(f"[{self.device_id}] Antwort des Servers: {response.json()}")
-        except Exception as e:
-            print(f"[{self.device_id}] Fehler beim Senden der Gewichte: {e}")
-    """
 
     def send_weights(self):
-        """Sendet lokale Gewichte an den Server und aktualisiert das Modell mit der Antwort"""
         try:
+            # Package and send model weights to the central server
             payload = {
                 "device_id": self.device_id,
                 "weights": self.get_model_weights()
@@ -81,6 +63,7 @@ class EdgeDevice:
             response = requests.post(f"{self.server_url}/upload_weights", json=payload)
 
             if response.status_code == 200:
+                # Receive and apply aggregated weights from the server
                 aggregated_weights = response.json()
                 print(f"[{self.device_id}] Aggregierte Gewichte empfangen. Modell wird aktualisiert.")
                 self.set_model_weights(aggregated_weights)
@@ -91,7 +74,7 @@ class EdgeDevice:
             print(f"[{self.device_id}] Fehler beim Senden oder Aktualisieren der Gewichte: {e}")
 
     def start_sending(self):
-        """Startet das regelmäßige Senden der Gewichte"""
+        # Loop to send model weights at defined intervals
         while True:
             self.send_weights()
             time.sleep(self.send_interval)

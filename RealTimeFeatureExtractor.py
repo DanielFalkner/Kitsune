@@ -8,8 +8,8 @@ class RealTimeFeatureExtractor:
     def __init__(self, max_host=100000000000, max_sess=100000000000):
         self.targetIP = get_host_ip()
         self.nstat = ns.netStat(np.nan, max_host, max_sess)
-        self.last_features = None  # Speichert den letzten verarbeiteten Vektor
-        self.cur_packet_index = 0  # Paketindex zur Nachverfolgung
+        self.last_features = None  # Stores the last feature vector
+        self.cur_packet_index = 0  # Packet index for tracking
         print("RealTimeFeatureExtractor gestartet.")
 
     def process_packet(self, packet):
@@ -18,6 +18,7 @@ class RealTimeFeatureExtractor:
             timestamp = packet.time
             framelen = len(packet)
 
+            # Determine source/destination IP and protocol type
             if packet.haslayer(IP):  # IPv4
                 srcIP = packet[IP].src
                 dstIP = packet[IP].dst
@@ -30,6 +31,7 @@ class RealTimeFeatureExtractor:
                 srcIP = ''
                 dstIP = ''
 
+            # Determine transport protocol and ports
             if packet.haslayer(TCP):
                 srcproto = str(packet[TCP].sport)
                 dstproto = str(packet[TCP].dport)
@@ -40,6 +42,7 @@ class RealTimeFeatureExtractor:
                 srcproto = ''
                 dstproto = ''
 
+            # Handle non-IP protocols like ARP or ICMP
             if srcproto == '':  # it's a L2/L1 level protocol
                 if packet.haslayer(ARP):  # is ARP
                     srcproto = 'arp'
@@ -55,6 +58,7 @@ class RealTimeFeatureExtractor:
                     srcIP = packet.src  # src MAC
                     dstIP = packet.dst  # dst MAC
 
+            # Default MAC values if not available
             srcMAC = getattr(packet, 'src', '00:00:00:00:00:00')
             dstMAC = getattr(packet, 'dst', '00:00:00:00:00:00')
 
@@ -66,7 +70,7 @@ class RealTimeFeatureExtractor:
                 print("Paket nicht für Target-IP. Übersprungen.")
                 return None
             """
-
+            # Compute feature vector via netStat
             return self.nstat.updateGetStats(
                 str(IPtype), srcMAC, dstMAC, srcIP, str(srcproto), dstIP, str(dstproto),
                 framelen, timestamp
@@ -75,13 +79,13 @@ class RealTimeFeatureExtractor:
             print(f"Error processing packet: {e}")
             return None
 
+    # Return the number of computed features (capped at 100)
     def get_num_features(self):
         num_features = len(self.nstat.getNetStatHeaders())
-        return min(num_features, 100)  # Begrenze die Anzahl der Features auf 100
+        return min(num_features, 100)
 
     def get_next_vector(self, packet):
         try:
-            # Überprüfen, ob das Paket notwendig ist
             if packet is None:
                 print("Warnung: Kein Paket erhalten. Vektor wird nicht generiert.")
                 return None
@@ -89,7 +93,6 @@ class RealTimeFeatureExtractor:
             print(f"Verarbeite Paket {self.cur_packet_index}...")
             self.cur_packet_index += 1
 
-            # Verarbeite das Paket und aktualisiere die Statistiken
             vector = self.process_packet(packet)
 
             if vector is None or len(vector) == 0:

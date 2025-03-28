@@ -28,7 +28,7 @@ from KitNET.KitNET import KitNET
 class Kitsune:
     def __init__(self, file_path, limit, max_autoencoder_size=10, FM_grace_period=None, AD_grace_period=10000,
                  learning_rate=0.1, hidden_ratio=0.75, ):
-        # init packet feature extractor (AfterImage)
+        # Initialize the feature extractor based on mode (real-time or from pcap file)
         if file_path is None or file_path == "real_time":
             print("Kitsune im Echtzeitmodus gestartet.")
             self.FE = RealTimeFeatureExtractor()
@@ -36,7 +36,7 @@ class Kitsune:
             print("Kitsune im Dateimodus gestartet.")
             self.FE = FE(file_path, limit)
 
-        # init Kitnet
+        # Initialize KitNET using number of extracted features
         num_features = self.FE.get_num_features()
         print(f"Anzahl der erwarteten Features: {num_features}")
         self.AnomDetector = KitNET(self.FE.get_num_features(), max_autoencoder_size, FM_grace_period, AD_grace_period,
@@ -59,17 +59,17 @@ class Kitsune:
     def proc_next_packet(self, packet):
         try:
             if packet is None:
-                # Kein Paket verfügbar, kurze Pause einlegen
+                # No packet received, small delay
                 time.sleep(0.01)
                 return -1
 
-            # Feature-Vektor generieren
+            # Generate feature vector from packet
             vector = self.FE.get_next_vector(packet)
             if vector is None:
                 print("Warnung: Kein Vektor generiert.")
                 return -1
 
-            # Anomalie-Score berechnen
+            # Compute RMSE anomaly score using KitNET
             rmse = self.AnomDetector.process(vector)
             return rmse
         except Exception as e:

@@ -1,28 +1,27 @@
 class ThresholdCalculator:
     def __init__(self, grace_period_total):
-        self.grace_period_total = grace_period_total
-        self.packet_counter = -1  # Starte bei -1, um die Grace Period zu starten
-        self.threshold_calculated = False
-        self.rmse_values_for_threshold = []
+        self.grace_period_total = grace_period_total  # Duration before threshold collection starts
+        self.packet_counter = -1  # Packet count tracker (starts negative to include grace)
+        self.threshold_calculated = False  # Indicates whether threshold is already computed
+        self.rmse_values_for_threshold = []  # Collected RMSE values to compute threshold
         self.threshold = None
-        self.in_threshold_phase = False
+        self.in_threshold_phase = False   # Whether we are currently collecting threshold data
 
     def handle_rmse(self, rmse):
-        # Zähle die Pakete während der gesamten Phase (Grace Period + Threshold-Erfassung)
+        # Increments packet count and manages state between grace, thresholding, and detection
         if not self.threshold_calculated:
             self.packet_counter += 1
 
-            # Nach der Grace Period Threshold-Erfassung starten
+            # Start threshold collection after grace period
             if self.packet_counter >= self.grace_period_total and not self.in_threshold_phase:
                 print("Grace Period abgeschlossen. Threshold-Erfassung gestartet.")
                 self.in_threshold_phase = True
-                self.packet_counter = 0  # Zähler für die Threshold-Erfassung zurücksetzen
+                self.packet_counter = 0  # Restart counter for threshold collection
 
             if self.in_threshold_phase:
-                # RMSE-Werte für Threshold-Erfassung sammeln
                 self.rmse_values_for_threshold.append(rmse)
 
-                # Sobald die zweite Phase abgeschlossen ist, berechne den Threshold
+                # Once enough values are collected, calculate the threshold
                 if self.packet_counter >= self.grace_period_total:
                     self.calculate_threshold()
                     self.threshold_calculated = True
@@ -31,7 +30,7 @@ class ThresholdCalculator:
         return self.threshold
 
     def calculate_threshold(self):
-        # Berechne den Threshold basierend auf den RMSE-Werten
+        # Basic threshold calculation using mean * factor of RMSEs
         mean_rmse = sum(self.rmse_values_for_threshold) / len(self.rmse_values_for_threshold)
-        self.threshold = mean_rmse * 4  # Beispielhafte Schwellenwert-Berechnung
+        self.threshold = mean_rmse * 4  # Customizable multiplier for sensitivity
         print(f"Threshold berechnet: {self.threshold}")
