@@ -5,8 +5,12 @@ from thresholdCalculator import ThresholdCalculator
 from edgeDevice import EdgeDevice
 import threading
 import subprocess
+import os
+import time
 
 sending_started = False  # Prevents sending weights before they are calculated
+log_dir = "Kitsune/Logs"
+os.makedirs(log_dir, exist_ok=True)
 
 
 def main():
@@ -80,9 +84,23 @@ def main():
                     threading.Thread(target=edge_device.start_sending, daemon=True).start()
                     sending_started = True
 
+                    # Logging
+                    model_depth = len(kitsune.AnomDetector.ensembleLayer)
+                    timestamp = time.time()
+                    with open(f"{log_dir}/model_depth_log.csv", "a") as f:
+                        f.write(f"{edge_device.device_id},{model_depth},{timestamp}\n")
+                    print(f"[{edge_device.device_id}] Modell abgeschlossen mit {model_depth} Autoencoder-Schichten")
+
                 if rmse is not None and rmse != -1:
                     print(f"RMSE: {rmse}")
+                    timestamp = time.time()
                     threshold = threshold_calculator.handle_rmse(rmse)
+
+                    # Logging
+                    with open(f"{log_dir}/rmse_log_{edge_device.device_id}.csv", "a") as f:
+                        is_anomaly = 1 if threshold and rmse > threshold else 0
+                        f.write(f"{timestamp},{rmse:.6f},{threshold if threshold else -1},{is_anomaly}\n")
+
                     if threshold is not None and rmse > threshold:
                         print("Anomalie erkannt!")
                 else:

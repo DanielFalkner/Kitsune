@@ -1,8 +1,8 @@
 import socket
-
 import requests
 import time
 import numpy as np
+import os
 
 
 # Represents an Edge Device, which sends model weights periodically to a server
@@ -66,6 +66,23 @@ class EdgeDevice:
                 # Receive and apply aggregated weights from the server
                 aggregated_weights = response.json()
                 print(f"[{self.device_id}] Aggregierte Gewichte empfangen. Modell wird aktualisiert.")
+
+                # Logging
+                log_dir = "Kitsune/Logs"
+                os.makedirs(log_dir, exist_ok=True)
+                old_weights = self.get_model_weights()
+                # Logging differences between old and new weights
+                for key in aggregated_weights:
+                    if key in old_weights:
+                        try:
+                            diff = np.linalg.norm(
+                                np.array(aggregated_weights[key]["W"]) - np.array(old_weights[key]["W"])
+                            )
+                            with open(f"{log_dir}/model_diff_log_{self.device_id}.csv", "a") as f:
+                                f.write(f"{key},{diff:.6f},{time.time()}\n")
+                        except Exception as e:
+                            print(f"[{self.device_id}] Vergleich bei {key} fehlgeschlagen: {e}")
+
                 self.set_model_weights(aggregated_weights)
             else:
                 print(f"[{self.device_id}] Unerwartete Server-Antwort ({response.status_code}): {response.text}")
