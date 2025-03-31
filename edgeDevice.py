@@ -4,6 +4,9 @@ import time
 import numpy as np
 import os
 
+log_dir = os.path.join(os.path.dirname(__file__), "Logs")
+os.makedirs(log_dir, exist_ok=True)
+
 
 # Represents an Edge Device, which sends model weights periodically to a server
 # and receives aggregated weights from the server to update local model
@@ -67,11 +70,8 @@ class EdgeDevice:
                 aggregated_weights = response.json()
                 print(f"[{self.device_id}] Aggregierte Gewichte empfangen. Modell wird aktualisiert.")
 
-                # Logging
-                log_dir = "Kitsune/Logs"
-                os.makedirs(log_dir, exist_ok=True)
-                old_weights = self.get_model_weights()
                 # Logging differences between old and new weights
+                old_weights = self.get_model_weights()
                 for key in aggregated_weights:
                     if key in old_weights:
                         try:

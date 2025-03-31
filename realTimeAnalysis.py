@@ -9,7 +9,7 @@ import os
 import time
 
 sending_started = False  # Prevents sending weights before they are calculated
-log_dir = "Kitsune/Logs"
+log_dir = os.path.join(os.path.dirname(__file__), "Logs")
 os.makedirs(log_dir, exist_ok=True)
 
 
