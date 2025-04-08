@@ -78,7 +78,7 @@ class EdgeDevice:
                             diff = np.linalg.norm(
                                 np.array(aggregated_weights[key]["W"]) - np.array(old_weights[key]["W"])
                             )
-                            with open(f"{log_dir}/model_diff_log_{self.device_id}.csv", "a") as f:
+                            with open(f"{log_dir}/model_diff_log_{self.device_id}.csv", "w") as f:
                                 f.write(f"{key},{diff:.6f},{time.time()}\n")
                         except Exception as e:
                             print(f"[{self.device_id}] Vergleich bei {key} fehlgeschlagen: {e}")

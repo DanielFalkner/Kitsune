@@ -17,9 +17,8 @@ def main():
     # Kitsune-Parameter
     path = "real_time"
     packet_limit = np.inf
-    # NUR AUS TESTZWECKEN FÜR DIE WEIGHT AGGREGATION SO NIEDRIG
-    FM_grace = 10  # Packet number of Feature Mapping grace period (training phase 1)
-    AD_grace = 100  # Packet number of Anomaly Detection grace period (training phase 2)
+    FM_grace = 500  # Packet number of Feature Mapping grace period (training phase 1)
+    AD_grace = 5000  # Packet number of Anomaly Detection grace period (training phase 2)
     max_autoencoder_size = 10
 
     # interface = "WLAN"  # Network interface name of Host Laptop
@@ -87,7 +86,7 @@ def main():
                     # Logging
                     model_depth = len(kitsune.AnomDetector.ensembleLayer)
                     timestamp = time.time()
-                    with open(f"{log_dir}/model_depth_log.csv", "a") as f:
+                    with open(f"{log_dir}/model_depth_log.csv", "w") as f:
                         f.write(f"{edge_device.device_id},{model_depth},{timestamp}\n")
                     print(f"[{edge_device.device_id}] Modell abgeschlossen mit {model_depth} Autoencoder-Schichten")
 
@@ -97,7 +96,7 @@ def main():
                     threshold = threshold_calculator.handle_rmse(rmse)
 
                     # Logging
-                    with open(f"{log_dir}/rmse_log_{edge_device.device_id}.csv", "a") as f:
+                    with open(f"{log_dir}/rmse_log_{edge_device.device_id}.csv", "w") as f:
                         is_anomaly = 1 if threshold and rmse > threshold else 0
                         f.write(f"{timestamp},{rmse:.6f},{threshold if threshold else -1},{is_anomaly}\n")
 
