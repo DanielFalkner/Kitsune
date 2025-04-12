@@ -17,8 +17,8 @@ def main():
     # Kitsune-Parameter
     path = "real_time"
     packet_limit = np.inf
-    FM_grace = 200  # Packet number of Feature Mapping grace period (training phase 1)
-    AD_grace = 2000  # Packet number of Anomaly Detection grace period (training phase 2)
+    FM_grace = 25  # Packet number of Feature Mapping grace period (training phase 1)
+    AD_grace = 250  # Packet number of Anomaly Detection grace period (training phase 2)
     max_autoencoder_size = 10
 
     # interface = "WLAN"  # Network interface name of Host Laptop
@@ -50,6 +50,7 @@ def main():
                 dst_ip = packet[IPv6].dst
                 protocol = "IPv6"
 
+            """
             # Handle ARP requests to the device
             if packet.haslayer(ARP):
                 if packet[ARP].pdst == target_ip or (target_ipv6 and packet[ARP].pdst == target_ipv6):
@@ -63,6 +64,7 @@ def main():
                     print(f"ICMP-Paket für {dst_ip} erhalten!")
                     kitsune.proc_next_packet(packet)
                 return
+            """
 
             # Determine transport-layer protocol
             dst_port = "N/A"

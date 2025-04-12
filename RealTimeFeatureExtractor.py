@@ -53,6 +53,12 @@ class RealTimeFeatureExtractor:
                 elif packet.haslayer(ICMP):  # is ICMP
                     srcproto = 'icmp'
                     dstproto = 'icmp'
+                    if packet.haslayer(IP):
+                        srcIP = packet[IP].src
+                        dstIP = packet[IP].dst
+                    elif packet.haslayer(IPv6):
+                        srcIP = packet[IPv6].src
+                        dstIP = packet[IPv6].dst
                     IPtype = 0
                 elif srcIP + srcproto + dstIP + dstproto == '':  # some other protocol
                     srcIP = packet.src  # src MAC
