@@ -33,6 +33,9 @@ def main():
     edge_device = EdgeDevice(server_url="http://192.168.0.163:5000", kitsune_instance=kitsune)
 
     def handle_packet(packet):
+        if packet.haslayer(ARP):
+            print(">>> ARP-Paket erkannt!")
+
         global sending_started
         if packet is None:
             print("Kein Paket erhalten.")
