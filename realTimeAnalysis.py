@@ -33,9 +33,6 @@ def main():
     edge_device = EdgeDevice(server_url="http://192.168.0.163:5000", kitsune_instance=kitsune)
 
     def handle_packet(packet):
-        if packet.haslayer(ARP):
-            print(">>> ARP-Paket erkannt!")
-
         global sending_started
         if packet is None:
             print("Kein Paket erhalten.")
@@ -52,22 +49,6 @@ def main():
             elif packet.haslayer(IPv6):
                 dst_ip = packet[IPv6].dst
                 protocol = "IPv6"
-
-            """
-            # Handle ARP requests to the device
-            if packet.haslayer(ARP):
-                if packet[ARP].pdst == target_ip or (target_ipv6 and packet[ARP].pdst == target_ipv6):
-                    print(f"ARP-Paket für {packet[ARP].pdst} erhalten!")
-                    kitsune.proc_next_packet(packet)
-                return  # Andere ARP-Pakete ignorieren
-
-            # Handle ICMP (e.g., ping)
-            if packet.haslayer(ICMP):
-                if dst_ip == target_ip or (target_ipv6 and dst_ip == target_ipv6):
-                    print(f"ICMP-Paket für {dst_ip} erhalten!")
-                    kitsune.proc_next_packet(packet)
-                return
-            """
 
             # Determine transport-layer protocol
             dst_port = "N/A"
