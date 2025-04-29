@@ -1,4 +1,5 @@
 import numpy as np
+import requests
 from scapy.all import sniff, IP, IPv6, ARP, ICMP, TCP, UDP
 from Kitsune import Kitsune
 from thresholdCalculator import ThresholdCalculator
@@ -63,6 +64,18 @@ def main():
             if dst_ip == target_ip or (target_ipv6 and dst_ip == target_ipv6):
                 print(f"{protocol}-Paket an {dst_ip}:{dst_port} erhalten!")
                 rmse = kitsune.proc_next_packet(packet)
+
+                if not sending_started:
+                    if int(time.time()) % 20 == 0:  # every 20 seconds
+                        try:
+                            dummy_payload = {
+                                "device_id": edge_device.device_id,
+                                "weights": edge_device.get_model_weights()
+                            }
+                            requests.post(f"{edge_device.server_url}/upload_weights", json=dummy_payload, timeout=1)
+                            print(f"[{edge_device.device_id}] Test-Gewichte gesendet während Grace Period.")
+                        except Exception as e:
+                            print(f"[{edge_device.device_id}] Fehler beim Dummy-Senden während Grace Period: {e}")
 
                 if not sending_started and rmse is not None and rmse > 0.0:
                     print("[edgeDevice] Grace Period vorbei. Starte Sende-Thread.")
