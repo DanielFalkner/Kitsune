@@ -98,10 +98,12 @@ def upload_weights():
         received_weights[device_id] = weights
         print(f"[Server] Gewichte empfangen von {device_id}")
 
+        """
         # Wait for at least two devices before aggregating
         if len(received_weights) < 2:
             print("[Server] Nicht genügend Geräte für Aggregation. Warte auf weitere.")
             return jsonify({"info": "Aggregation wird später durchgeführt."}), 202
+        """
 
         aggregated_weights = aggregate_weights()
         received_weights.clear()    # Clear for next round
