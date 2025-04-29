@@ -3,9 +3,10 @@ import numpy as np
 
 app = Flask(__name__)
 
-# In-memory storage for received weights and last aggregation result
+# In-memory storage for received weights, last aggregation result and previous weights
 received_weights = {}
 last_aggregated_weights = {}
+previous_received_weights = {}
 
 
 def aggregate_weights():
@@ -87,6 +88,7 @@ def aggregate_weights():
 
 @app.route('/upload_weights', methods=['POST'])
 def upload_weights():
+    global last_aggregated_weights, previous_received_weights
     try:
         data = request.json
         device_id = data.get("device_id")
@@ -95,38 +97,36 @@ def upload_weights():
         if not device_id or not weights:
             return jsonify({"error": "Ungültige Daten"}), 400
 
-        received_weights[device_id] = weights
-        print(f"[Server] Gewichte empfangen von {device_id}")
-
-        """
-        # Wait for at least two devices before aggregating
-        if len(received_weights) < 2:
-            print("[Server] Nicht genügend Geräte für Aggregation. Warte auf weitere.")
-            return jsonify({"info": "Aggregation wird später durchgeführt."}), 202
-        """
-
-        aggregated_weights = aggregate_weights()
-        received_weights.clear()    # Clear for next round
-
-        # Evaluate difference to previous model
-        global last_aggregated_weights
-        if last_aggregated_weights:
-            print("[Server] Veränderung gegenüber vorherigem globalem Modell:")
-            for key in aggregated_weights:
-                if key in last_aggregated_weights:
-                    try:
-                        diff = np.linalg.norm(
-                            np.array(aggregated_weights[key]["W"]) - np.array(last_aggregated_weights[key]["W"])
-                        )
-                        print(f"- {key} (W): Δ = {diff:.6f}")
-                    except Exception as e:
-                        print(f"- {key}: Fehler beim Vergleich: {e}")
+        if not previous_received_weights:
+            previous_received_weights[device_id] = weights
+            print(f"[Server] Erstes Gerät gespeichert, warte auf zweites.")
+            return jsonify({"info": "Noch kein zweites Gerät, Aggregation später."}), 202
         else:
-            print("[Server] Erstes globales Modell gespeichert.")
+            previous_received_weights[device_id] = weights
+            print(f"[Server] Zweites Gerät erkannt, Aggregation startet.")
 
-        last_aggregated_weights = aggregated_weights.copy()
+            aggregated_weights = aggregate_weights()
 
-        return jsonify(aggregated_weights), 200
+            received_weights.clear()
+            previous_received_weights.clear()
+
+            if last_aggregated_weights:
+                print("[Server] Veränderung gegenüber vorherigem globalem Modell:")
+                for key in aggregated_weights:
+                    if key in last_aggregated_weights:
+                        try:
+                            diff = np.linalg.norm(
+                                np.array(aggregated_weights[key]["W"]) - np.array(last_aggregated_weights[key]["W"])
+                            )
+                            print(f"- {key} (W): Δ = {diff:.6f}")
+                        except Exception as e:
+                            print(f"- {key}: Fehler beim Vergleich: {e}")
+            else:
+                print("[Server] Erstes globales Modell gespeichert.")
+
+            last_aggregated_weights = aggregated_weights.copy()
+
+            return jsonify(aggregated_weights), 200
 
     except Exception as e:
         print(f"[Server ERROR] Fehler beim Empfangen der Gewichte: {e}")
