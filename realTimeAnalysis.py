@@ -32,7 +32,6 @@ def main():
     # Initialize Kitsune and EdgeDevice
     kitsune = Kitsune(path, packet_limit, max_autoencoder_size, FM_grace, AD_grace)
     edge_device = EdgeDevice(server_url="http://192.168.0.163:5000", kitsune_instance=kitsune)
-    last_test_upload_time = 0
 
     def handle_packet(packet):
         global sending_started
@@ -67,8 +66,7 @@ def main():
                 rmse = kitsune.proc_next_packet(packet)
 
                 if not sending_started:
-                    current_time = time.time()
-                    if current_time - last_test_upload_time >= 20: # 20 seconds
+                    if int(time.time()) % 20 == 0:  # every 20 seconds
                         try:
                             dummy_payload = {
                                 "device_id": edge_device.device_id,
