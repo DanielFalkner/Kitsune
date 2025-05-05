@@ -6,6 +6,7 @@ app = Flask(__name__)
 # In-memory storage for received weights, last aggregation result and previous weights
 received_weights = {}
 last_aggregated_weights = {}
+notified_devices = set()
 
 
 def aggregate_weights():
@@ -85,10 +86,10 @@ def aggregate_weights():
     return aggregated_weights
 
 
-"""
 @app.route('/upload_weights', methods=['POST'])
 def upload_weights():
-    global last_aggregated_weights
+    global last_aggregated_weights, notified_devices
+
     try:
         data = request.json
         device_id = data.get("device_id")
@@ -97,19 +98,19 @@ def upload_weights():
         if not device_id or not weights:
             return jsonify({"error": "Ungültige Daten"}), 400
 
-        if not previous_received_weights:
-            previous_received_weights[device_id] = weights
-            print(f"[Server] Erstes Gerät gespeichert, warte auf zweites.")
-            return jsonify({"info": "Noch kein zweites Gerät, Aggregation später."}), 202
-        else:
-            previous_received_weights[device_id] = weights
-            print(f"[Server] Zweites Gerät erkannt, Aggregation startet.")
+        received_weights[device_id] = weights
+        print(f"[Server] Gewichte empfangen von {device_id}")
 
+        if last_aggregated_weights and device_id not in notified_devices:
+            print(f"[Server] Sende gespeichertes Modell an {device_id}")
+            notified_devices.add(device_id)
+            return jsonify(last_aggregated_weights), 200
+
+        if len(received_weights) >= 2:
+            print(f"[Server] Aggregation gestartet auf Basis von {len(received_weights)} Geräten.")
             aggregated_weights = aggregate_weights()
 
-            received_weights.clear()
-            previous_received_weights.clear()
-
+            # Logging
             if last_aggregated_weights:
                 print("[Server] Veränderung gegenüber vorherigem globalem Modell:")
                 for key in aggregated_weights:
@@ -125,59 +126,17 @@ def upload_weights():
                 print("[Server] Erstes globales Modell gespeichert.")
 
             last_aggregated_weights = aggregated_weights.copy()
-
+            notified_devices = {device_id}
             return jsonify(aggregated_weights), 200
 
-    except Exception as e:
-        print(f"[Server ERROR] Fehler beim Empfangen der Gewichte: {e}")
-        return jsonify({"error": str(e)}), 500
-"""
-
-
-@app.route('/upload_weights', methods=['POST'])
-def upload_weights():
-    try:
-        data = request.json
-        device_id = data.get("device_id")
-        weights = data.get("weights")
-
-        if not device_id or not weights:
-            return jsonify({"error": "Ungültige Daten"}), 400
-
-        received_weights[device_id] = weights
-        print(f"[Server] Gewichte empfangen von {device_id}")
-
-        # Wait for at least two devices before aggregating
-        if len(received_weights) < 2:
-            print("[Server] Nicht genügend Geräte für Aggregation. Warte auf weitere.")
-            return jsonify({"info": "Aggregation wird später durchgeführt."}), 202
-
-        aggregated_weights = aggregate_weights()
-        received_weights.clear()  # Clear for next round
-
-        # Evaluate difference to previous model
-        global last_aggregated_weights
-        if last_aggregated_weights:
-            print("[Server] Veränderung gegenüber vorherigem globalem Modell:")
-            for key in aggregated_weights:
-                if key in last_aggregated_weights:
-                    try:
-                        diff = np.linalg.norm(
-                            np.array(aggregated_weights[key]["W"]) - np.array(last_aggregated_weights[key]["W"])
-                        )
-                        print(f"- {key} (W): Δ = {diff:.6f}")
-                    except Exception as e:
-                        print(f"- {key}: Fehler beim Vergleich: {e}")
-        else:
-            print("[Server] Erstes globales Modell gespeichert.")
-
-        last_aggregated_weights = aggregated_weights.copy()
-
-        return jsonify(aggregated_weights), 200
+        # If not enough devices: give back information
+        print("[Server] Nicht genügend Geräte für Aggregation. Warte auf weitere.")
+        return jsonify({"info": "Aggregation wird später durchgeführt."}), 202
 
     except Exception as e:
         print(f"[Server ERROR] Fehler beim Empfangen der Gewichte: {e}")
         return jsonify({"error": str(e)}), 500
+
 
 
 @app.route('/get_aggregated_weights', methods=['GET'])
