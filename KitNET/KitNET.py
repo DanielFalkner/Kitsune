@@ -77,6 +77,8 @@ class KitNET:
             self.outputLayer.train(S_l1)
             if self.n_trained == self.AD_grace_period+self.FM_grace_period:
                 print("Feature-Mapper: execute-mode, Anomaly-Detector: execute-mode")
+                from edgeDevice import device_id
+                self.log_feature_map(device_id)
         self.n_trained += 1
 
     #force execute KitNET on x
@@ -103,6 +105,18 @@ class KitNET:
         # construct output layer
         params = AE.dA_params(len(self.v), n_hidden=0, lr=self.lr, corruption_level=0, gracePeriod=0, hiddenRatio=self.hr)
         self.outputLayer = AE.dA(params)
+
+    def log_feature_map(self, device_id="default", output_dir="Logs"):
+        import os
+        os.makedirs(output_dir, exist_ok=True)
+        output_file = f"{output_dir}/feature_map_log_{device_id}.csv"
+
+        with open(output_file, "w") as f:
+            f.write("Autoencoder,Feature_Indices\n")
+            for i, feature_indices in enumerate(self.v):
+                feature_str = ','.join(map(str, feature_indices))
+                f.write(f"autoencoder_{i},{feature_str}\n")
+        print(f"[KitNET] Feature-Mapping für {device_id} wurde geloggt.")
 
 # Copyright (c) 2017 Yisroel Mirsky
 #

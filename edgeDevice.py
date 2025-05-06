@@ -6,6 +6,7 @@ import os
 
 log_dir = os.path.join(os.path.dirname(__file__), "Logs")
 os.makedirs(log_dir, exist_ok=True)
+device_id = socket.gethostname()
 
 
 # Represents an Edge Device, which sends model weights periodically to a server
@@ -13,7 +14,7 @@ os.makedirs(log_dir, exist_ok=True)
 class EdgeDevice:
     def __init__(self, server_url, kitsune_instance, send_interval=60):
         self.server_url = server_url
-        self.device_id = socket.gethostname()
+        self.device_id = device_id
         self.kitnet = kitsune_instance.AnomDetector  # Uses KitNET from Kitsune
         self.send_interval = send_interval  # Time interval between sending model weights in seconds
 
