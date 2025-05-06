@@ -41,21 +41,30 @@ class EdgeDevice:
         return weights_dict
 
     def set_model_weights(self, new_weights):
-        try:
-            # Update ensemble layer with new weights
-            for i, autoencoder in enumerate(self.kitnet.ensembleLayer):
-                autoencoder.W = np.array(new_weights[f"autoencoder_{i}"]["W"])
-                autoencoder.hbias = np.array(new_weights[f"autoencoder_{i}"]["hbias"])
-                autoencoder.vbias = np.array(new_weights[f"autoencoder_{i}"]["vbias"])
+        # Update the model weights with the new weights received from the server
+        for i, autoencoder in enumerate(self.kitnet.ensembleLayer):
+            key = f"autoencoder_{i}"
+            if key in new_weights:
+                try:
+                    autoencoder.W = np.array(new_weights[key]["W"])
+                    autoencoder.hbias = np.array(new_weights[key]["hbias"])
+                    autoencoder.vbias = np.array(new_weights[key]["vbias"])
+                except Exception as e:
+                    print(f"[{self.device_id}] Fehler beim Setzen von {key}: {e}")
+            else:
+                print(f"[{self.device_id}] {key} nicht im aggregierten Modell enthalten, wird übersprungen.")
+        # Update the output layer weights
+        if "output_layer" in new_weights:
+            try:
+                self.kitnet.outputLayer.W = np.array(new_weights["output_layer"]["W"])
+                self.kitnet.outputLayer.hbias = np.array(new_weights["output_layer"]["hbias"])
+                self.kitnet.outputLayer.vbias = np.array(new_weights["output_layer"]["vbias"])
+            except Exception as e:
+                print(f"[{self.device_id}] Fehler beim Setzen des Output-Layers: {e}")
+        else:
+            print(f"[{self.device_id}] Output-Layer fehlt im Modell, wird nicht aktualisiert.")
 
-            # Update output layer with new weights
-            self.kitnet.outputLayer.W = np.array(new_weights["output_layer"]["W"])
-            self.kitnet.outputLayer.hbias = np.array(new_weights["output_layer"]["hbias"])
-            self.kitnet.outputLayer.vbias = np.array(new_weights["output_layer"]["vbias"])
-
-            print(f"[{self.device_id}] Gewichte erfolgreich aktualisiert.")
-        except Exception as e:
-            print(f"[{self.device_id}] Fehler beim Setzen der Gewichte: {e}")
+        print(f"[{self.device_id}] Gewichts-Update abgeschlossen.")
 
     def send_weights(self):
         try:
