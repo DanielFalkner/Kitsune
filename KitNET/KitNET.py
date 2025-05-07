@@ -116,18 +116,13 @@ class KitNET:
             # Training der Autoencoder mit der festen Feature-Map
             S_l1 = np.zeros(len(self.ensembleLayer))
             print(f"[DEBUG] Anzahl Autoencoder in EnsembleLayer: {len(self.ensembleLayer)}")
+            print(f"[DEBUG] Feature-Map: {self.v}")
             for a in range(len(self.ensembleLayer)):
                 try:
-                    print(f"[DEBUG] Training Autoencoder {a} mit Feature-Indizes: {self.v[a]}")
                     xi = x[self.v[a]]
-                    print(f"[DEBUG] Eingangsvektor für Autoencoder {a}: {xi}")
-
-                    if len(xi) == 0:
-                        print(f"[ERROR] Leerer Feature-Vektor für Autoencoder {a}.")
-                        continue
-
+                    print(f"[DEBUG] Training Autoencoder {a} mit Features: {xi}")
                     S_l1[a] = self.ensembleLayer[a].train(xi)
-                    print(f"[DEBUG] Autoencoder {a} erfolgreich trainiert. S_l1[{a}] = {S_l1[a]}")
+                    print(f"[DEBUG] Autoencoder {a} trainiert. RMSE: {S_l1[a]}")
                 except Exception as e:
                     print(f"[ERROR] Fehler beim Training von Autoencoder {a}: {e}")
 
@@ -175,13 +170,9 @@ class KitNET:
     """
 
     def __createAD__(self):
-        print("[DEBUG] Starte __createAD__...")
-        print(f"[DEBUG] Feature-Map Länge: {len(self.v)}")
-
         # construct ensemble layer
         self.ensembleLayer = []  # Leere Liste für Autoencoder
         for idx, feature_indices in enumerate(self.v):
-            print(f"[DEBUG] Erstelle Autoencoder {idx} mit Feature-Indizes: {feature_indices}")
             try:
                 params = AE.dA_params(
                     n_visible=len(feature_indices),
@@ -193,13 +184,11 @@ class KitNET:
                 )
                 autoencoder = AE.dA(params)
                 self.ensembleLayer.append(autoencoder)
-                print(f"[DEBUG] Autoencoder {idx} erfolgreich erstellt.")
             except Exception as e:
                 print(f"[ERROR] Fehler beim Erstellen von Autoencoder {idx}: {e}")
 
         # construct output layer
         try:
-            print("[DEBUG] Erstelle Output-Layer...")
             params = AE.dA_params(
                 n_visible=len(self.v),
                 n_hidden=0,
@@ -209,11 +198,8 @@ class KitNET:
                 hiddenRatio=self.hr
             )
             self.outputLayer = AE.dA(params)
-            print("[DEBUG] Output-Layer erfolgreich erstellt.")
         except Exception as e:
             print(f"[ERROR] Fehler beim Erstellen des Output-Layers: {e}")
-
-        print("[DEBUG] __createAD__ abgeschlossen.")
 
     def log_feature_map(self, device_id="default", output_dir="Logs"):
         import os
