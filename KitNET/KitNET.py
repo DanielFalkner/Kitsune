@@ -61,14 +61,9 @@ class KitNET:
     def process(self, x):
         try:
             print(f"[DEBUG] Training Counter: {self.n_trained}")
-            print(f"[DEBUG] FM Grace Period: {self.FM_grace_period}, AD Grace Period: {self.AD_grace_period}")
             if self.n_trained > self.FM_grace_period + self.AD_grace_period:  # If both the FM and AD are in execute-mode
-                print("[DEBUG] In Execute Mode")
-                rmse = self.execute(x)
-                print(f"[DEBUG] RMSE (Execute Mode): {rmse}")
-                return rmse
+                return self.execute(x)
             else:
-                print("[DEBUG] In Training Mode")
                 self.train(x)
                 print(f"[DEBUG] Training Vector Processed: {x}")
                 return 0.0
@@ -105,9 +100,13 @@ class KitNET:
     """
 
     def train(self, x):
+        print(f"[DEBUG] Training gestartet - Paket {self.n_trained}")
+        print(f"[DEBUG] Aktuelle Feature-Map: {self.v}")
         if self.v is None:  # Wenn keine Feature-Map existiert, Feature-Mapping durchführen
+            print("[DEBUG] Feature-Map existiert nicht. Feature-Mapping wird erstellt.")
             if self.n_trained <= self.FM_grace_period:  # FM-Phase
                 self.FM.update(x)
+                print(f"[DEBUG] Feature-Map-Update: Paket {self.n_trained}")
                 if self.n_trained == self.FM_grace_period:  # Wenn FM-Phase abgeschlossen
                     self.v = self.FM.cluster(self.m)
                     self.__createAD__()
@@ -115,14 +114,17 @@ class KitNET:
                         len(self.v)) + " autoencoders.")
                     print("Feature-Mapper: execute-mode, Anomaly-Detector: train-mode")
         else:
+            print("[DEBUG] Training der Autoencoder...")
             # Training der Autoencoder mit der festen Feature-Map
             S_l1 = np.zeros(len(self.ensembleLayer))
             for a in range(len(self.ensembleLayer)):
                 xi = x[self.v[a]]
                 S_l1[a] = self.ensembleLayer[a].train(xi)
+                print(f"[DEBUG] Autoencoder {a} trainiert.")
 
             # Training des Output-Layers
             if self.outputLayer is not None:
+                print("[DEBUG] Training Output Layer...")
                 self.outputLayer.train(S_l1)
 
             if self.n_trained == self.AD_grace_period + self.FM_grace_period:
@@ -131,6 +133,7 @@ class KitNET:
                 self.log_feature_map(device_id)
 
         self.n_trained += 1
+        print(f"[DEBUG] Training abgeschlossen - Paket {self.n_trained}")
 
     # force execute KitNET on x
     def execute(self, x):
