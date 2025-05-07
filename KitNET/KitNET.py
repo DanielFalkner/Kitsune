@@ -100,8 +100,6 @@ class KitNET:
     """
 
     def train(self, x):
-        print(f"[DEBUG] Training gestartet - Paket {self.n_trained}")
-        print(f"[DEBUG] Aktuelle Feature-Map: {self.v}")
         if self.v is None:  # Wenn keine Feature-Map existiert, Feature-Mapping durchführen
             print("[DEBUG] Feature-Map existiert nicht. Feature-Mapping wird erstellt.")
             if self.n_trained <= self.FM_grace_period:  # FM-Phase
@@ -117,10 +115,22 @@ class KitNET:
             print("[DEBUG] Training der Autoencoder...")
             # Training der Autoencoder mit der festen Feature-Map
             S_l1 = np.zeros(len(self.ensembleLayer))
+            print(f"[DEBUG] Anzahl Autoencoder in EnsembleLayer: {len(self.ensembleLayer)}")
+            print(f"[DEBUG] Feature-Map: {self.v}")
             for a in range(len(self.ensembleLayer)):
-                xi = x[self.v[a]]
-                S_l1[a] = self.ensembleLayer[a].train(xi)
-                print(f"[DEBUG] Autoencoder {a} trainiert.")
+                try:
+                    print(f"[DEBUG] Training Autoencoder {a} mit Feature-Indizes: {self.v[a]}")
+                    xi = x[self.v[a]]
+                    print(f"[DEBUG] Eingangsvektor für Autoencoder {a}: {xi}")
+
+                    if len(xi) == 0:
+                        print(f"[ERROR] Leerer Feature-Vektor für Autoencoder {a}.")
+                        continue
+
+                    S_l1[a] = self.ensembleLayer[a].train(xi)
+                    print(f"[DEBUG] Autoencoder {a} erfolgreich trainiert. S_l1[{a}] = {S_l1[a]}")
+                except Exception as e:
+                    print(f"[ERROR] Fehler beim Training von Autoencoder {a}: {e}")
 
             # Training des Output-Layers
             if self.outputLayer is not None:
