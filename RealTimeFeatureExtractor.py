@@ -87,8 +87,9 @@ class RealTimeFeatureExtractor:
 
     # Return the number of computed features (capped at 100)
     def get_num_features(self):
-        num_features = len(self.nstat.getNetStatHeaders())
-        return min(num_features, 100)
+        # num_features = len(self.nstat.getNetStatHeaders())
+        # return min(num_features, 100)
+        return 100
 
     def get_next_vector(self, packet):
         try:

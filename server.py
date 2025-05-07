@@ -138,7 +138,6 @@ def upload_weights():
         return jsonify({"error": str(e)}), 500
 
 
-
 @app.route('/get_aggregated_weights', methods=['GET'])
 def get_aggregated_weights():
     if not last_aggregated_weights:

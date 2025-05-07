@@ -1,6 +1,8 @@
 import numpy as np
 import KitNET.dA as AE
 import KitNET.corClust as CC
+import json
+import os
 
 # This class represents a KitNET machine learner.
 # KitNET is a lightweight online anomaly detection algorithm based on an ensemble of autoencoders.
@@ -37,10 +39,17 @@ class KitNET:
         self.n_executed = 0 # the number of executed instances so far
         self.v = feature_map
         if self.v is None:
-            print("Feature-Mapper: train-mode, Anomaly-Detector: off-mode")
-        else:
-            self.__createAD__()
-            print("Feature-Mapper: execute-mode, Anomaly-Detector: train-mode")
+            feature_map_path = "fixed_feature_map.json"
+            if os.path.exists(feature_map_path):
+                with open(feature_map_path, "r") as f:
+                    feature_map_data = json.load(f)
+                    self.v = feature_map_data["feature_map"]
+                    print(f"Feature-Mapper: Feste Feature-Map aus {feature_map_path} geladen.")
+            else:
+                raise FileNotFoundError("Feature-Map JSON-Datei fehlt. Bitte erstellen und speichern.")
+
+        self.__createAD__()
+        print("Feature-Mapper: execute-mode, Anomaly-Detector: train-mode")
         self.FM = CC.corClust(self.n) #incremental feature cluatering for the feature mapping process
         self.ensembleLayer = []
         self.outputLayer = None
