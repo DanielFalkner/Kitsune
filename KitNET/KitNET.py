@@ -47,11 +47,10 @@ class KitNET:
                     print(f"Feature-Mapper: Feste Feature-Map aus {feature_map_path} geladen.")
             else:
                 raise FileNotFoundError("Feature-Map JSON-Datei fehlt. Bitte erstellen und speichern.")
-
+        self.ensembleLayer = []
         self.__createAD__()
         print("Feature-Mapper: execute-mode, Anomaly-Detector: train-mode")
         self.FM = CC.corClust(self.n) #incremental feature cluatering for the feature mapping process
-        self.ensembleLayer = []
         self.outputLayer = None
 
     #If FM_grace_period+AM_grace_period has passed, then this function executes KitNET on x. Otherwise, this function learns from x.
