@@ -69,12 +69,8 @@ class Kitsune:
                 print("Warnung: Kein Vektor generiert.")
                 return -1
 
-            print(f"[DEBUG] Generierter Feature-Vektor: {vector}")
-            print(f"[DEBUG] Länge des Vektors: {len(vector)}")
-
             # Compute RMSE anomaly score using KitNET
             rmse = self.AnomDetector.process(vector)
-            print(f"[DEBUG] RMSE-Wert: {rmse}")
             return rmse
         except Exception as e:
             print(f"Fehler in proc_next_packet: {e}")

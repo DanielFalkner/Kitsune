@@ -57,11 +57,22 @@ class KitNET:
     #x: a numpy array of length n
     #Note: KitNET automatically performs 0-1 normalization on all attributes.
     def process(self,x):
-        if self.n_trained > self.FM_grace_period + self.AD_grace_period: #If both the FM and AD are in execute-mode
-            return self.execute(x)
-        else:
-            self.train(x)
-            return 0.0
+        try:
+            print(f"[DEBUG] Training Counter: {self.n_trained}")
+            print(f"[DEBUG] FM Grace Period: {self.FM_grace_period}, AD Grace Period: {self.AD_grace_period}")
+            if self.n_trained > self.FM_grace_period + self.AD_grace_period: #If both the FM and AD are in execute-mode
+                print("[DEBUG] In Execute Mode")
+                rmse = self.execute(x)
+                print(f"[DEBUG] RMSE (Execute Mode): {rmse}")
+                return rmse
+            else:
+                print("[DEBUG] In Training Mode")
+                self.train(x)
+                print(f"[DEBUG] Training Vector Processed: {x}")
+                return 0.0
+        except Exception as e:
+            print(f"[KitNET-Fehler in process()]: {e}")
+            return -1
 
     #force train KitNET on x
     #returns the anomaly score of x during training (do not use for alerting)
