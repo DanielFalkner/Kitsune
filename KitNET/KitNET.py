@@ -116,7 +116,6 @@ class KitNET:
             # Training der Autoencoder mit der festen Feature-Map
             S_l1 = np.zeros(len(self.ensembleLayer))
             print(f"[DEBUG] Anzahl Autoencoder in EnsembleLayer: {len(self.ensembleLayer)}")
-            print(f"[DEBUG] Feature-Map: {self.v}")
             for a in range(len(self.ensembleLayer)):
                 try:
                     print(f"[DEBUG] Training Autoencoder {a} mit Feature-Indizes: {self.v[a]}")
@@ -142,8 +141,8 @@ class KitNET:
                 from edgeDevice import device_id
                 self.log_feature_map(device_id)
 
-        self.n_trained += 1
         print(f"[DEBUG] Training abgeschlossen - Paket {self.n_trained}")
+        self.n_trained += 1
 
     # force execute KitNET on x
     def execute(self, x):
@@ -161,6 +160,7 @@ class KitNET:
             ## OutputLayer
             return self.outputLayer.execute(S_l1)
 
+    """
     def __createAD__(self):
         # construct ensemble layer
         for map in self.v:
@@ -172,6 +172,48 @@ class KitNET:
         params = AE.dA_params(len(self.v), n_hidden=0, lr=self.lr, corruption_level=0, gracePeriod=0,
                               hiddenRatio=self.hr)
         self.outputLayer = AE.dA(params)
+    """
+
+    def __createAD__(self):
+        print("[DEBUG] Starte __createAD__...")
+        print(f"[DEBUG] Feature-Map Länge: {len(self.v)}")
+
+        # construct ensemble layer
+        self.ensembleLayer = []  # Leere Liste für Autoencoder
+        for idx, feature_indices in enumerate(self.v):
+            print(f"[DEBUG] Erstelle Autoencoder {idx} mit Feature-Indizes: {feature_indices}")
+            try:
+                params = AE.dA_params(
+                    n_visible=len(feature_indices),
+                    n_hidden=0,
+                    lr=self.lr,
+                    corruption_level=0,
+                    gracePeriod=0,
+                    hiddenRatio=self.hr
+                )
+                autoencoder = AE.dA(params)
+                self.ensembleLayer.append(autoencoder)
+                print(f"[DEBUG] Autoencoder {idx} erfolgreich erstellt.")
+            except Exception as e:
+                print(f"[ERROR] Fehler beim Erstellen von Autoencoder {idx}: {e}")
+
+        # construct output layer
+        try:
+            print("[DEBUG] Erstelle Output-Layer...")
+            params = AE.dA_params(
+                n_visible=len(self.v),
+                n_hidden=0,
+                lr=self.lr,
+                corruption_level=0,
+                gracePeriod=0,
+                hiddenRatio=self.hr
+            )
+            self.outputLayer = AE.dA(params)
+            print("[DEBUG] Output-Layer erfolgreich erstellt.")
+        except Exception as e:
+            print(f"[ERROR] Fehler beim Erstellen des Output-Layers: {e}")
+
+        print("[DEBUG] __createAD__ abgeschlossen.")
 
     def log_feature_map(self, device_id="default", output_dir="Logs"):
         import os
