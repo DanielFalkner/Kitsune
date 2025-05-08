@@ -116,8 +116,8 @@ class KitNET:
             # Training der Autoencoder mit der festen Feature-Map
             S_l1 = np.zeros(len(self.ensembleLayer))
             print(f"[DEBUG] Anzahl Autoencoder in EnsembleLayer: {len(self.ensembleLayer)}")
-            print(f"[DEBUG] Feature-Map: {self.v}")
             for a in range(len(self.ensembleLayer)):
+                print(f"[DEBUG] Schleife wird durchlaufen")
                 try:
                     xi = x[self.v[a]]
                     print(f"[DEBUG] Training Autoencoder {a} mit Features: {xi}")
