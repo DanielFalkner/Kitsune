@@ -45,7 +45,7 @@ class KitNET:
             # Fixed Feature Map aus JSON-Datei laden
             with open("fixed_feature_map.json", "r") as f:
                 feature_map_data = json.load(f)
-            if isinstance(feature_map_data, dict) and "feature_map" in feature_map_data:
+            if isinstance(feature_map, list) and all(isinstance(i, list) for i in feature_map):
                 self.v = feature_map_data["feature_map"]
                 print("[DEBUG] Feature-Map erfolgreich aus JSON-Datei geladen:", self.v)
             else:
@@ -173,8 +173,6 @@ class KitNET:
     """
 
     def __createAD__(self):
-        # construct ensemble layer
-        self.ensembleLayer = []  # Leere Liste für Autoencoder
         print("[DEBUG] Erstelle Autoencoder basierend auf fester Feature-Map:")
         for idx, feature_indices in enumerate(self.v):
             try:
