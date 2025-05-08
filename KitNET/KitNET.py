@@ -43,8 +43,15 @@ class KitNET:
         if self.v is None:
             feature_map_path = "fixed_feature_map.json"
             if os.path.exists(feature_map_path):
-                with open(feature_map_path, "r") as f:
+                # Fixed Feature Map aus JSON-Datei laden
+                with open("fixed_feature_map.json", "r") as f:
                     feature_map_data = json.load(f)
+                if isinstance(feature_map_data, dict):
+                    self.v = list(feature_map_data.values())
+                    print("[DEBUG] Feature-Map erfolgreich als Liste von Listen geladen:", self.v)
+                else:
+                    self.v = feature_map_data
+                    print("[DEBUG] Feature-Map direkt als Liste von Listen verwendet:", self.v)
                     self.v = feature_map_data["feature_map"]
                     print(f"Feature-Mapper: Feste Feature-Map aus {feature_map_path} geladen.")
             else:
