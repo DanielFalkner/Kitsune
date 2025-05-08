@@ -45,6 +45,7 @@ class KitNET:
             # Fixed Feature Map aus JSON-Datei laden
             with open(feature_map_path, "r") as f:
                 feature_map_data = json.load(f)
+                print("[DEBUG] Geladene Feature-Map aus JSON:", feature_map_data)
             if isinstance(feature_map, list) and all(isinstance(i, list) for i in feature_map):
                 self.v = feature_map_data
                 print("[DEBUG] Feature-Map erfolgreich aus JSON-Datei geladen:", self.v)
