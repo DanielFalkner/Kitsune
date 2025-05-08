@@ -119,7 +119,26 @@ class KitNET:
             for a in range(len(self.ensembleLayer)):
                 print(f"[DEBUG] Schleife wird durchlaufen")
                 try:
-                    xi = x[self.v[a]]
+                    # xi = x[self.v[a]]
+                    try:
+                        if a >= len(self.v):
+                            print(f"[ERROR] Autoencoder {a} hat keine zugeordnete Feature-Map.")
+                            continue
+
+                        feature_indices = self.v[a]
+                        print(f"[DEBUG] Feature-Indizes für Autoencoder {a}: {feature_indices}")
+
+                        if max(feature_indices) >= len(x):
+                            print(
+                                f"[ERROR] Autoencoder {a} hat ungültige Feature-Indizes: {feature_indices}. Vektor-Länge: {len(x)}")
+                            continue
+
+                        xi = x[feature_indices]
+                        print(f"[DEBUG] Eingabe für Autoencoder {a}: {xi}")
+                    except Exception as e:
+                        print(f"[ERROR] Fehler beim Extrahieren der Features für Autoencoder {a}: {e}")
+                        continue
+
                     print(f"[DEBUG] Training Autoencoder {a} mit Features: {xi}")
                     S_l1[a] = self.ensembleLayer[a].train(xi)
                     print(f"[DEBUG] Autoencoder {a} trainiert. RMSE: {S_l1[a]}")
