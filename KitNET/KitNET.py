@@ -43,10 +43,10 @@ class KitNET:
         feature_map_path = "fixed_feature_map.json"
         if os.path.exists(feature_map_path):
             # Fixed Feature Map aus JSON-Datei laden
-            with open("fixed_feature_map.json", "r") as f:
+            with open(feature_map_path, "r") as f:
                 feature_map_data = json.load(f)
             if isinstance(feature_map, list) and all(isinstance(i, list) for i in feature_map):
-                self.v = feature_map_data["feature_map"]
+                self.v = feature_map_data
                 print("[DEBUG] Feature-Map erfolgreich aus JSON-Datei geladen:", self.v)
             else:
                 raise ValueError("Feature-Map JSON-Datei hat ein ungültiges Format.")
