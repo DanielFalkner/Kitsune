@@ -39,23 +39,19 @@ class KitNET:
         # Variables
         self.n_trained = 0  # the number of training instances so far
         self.n_executed = 0  # the number of executed instances so far
-        self.v = feature_map
-        if self.v is None:
-            feature_map_path = "fixed_feature_map.json"
-            if os.path.exists(feature_map_path):
-                # Fixed Feature Map aus JSON-Datei laden
-                with open("fixed_feature_map.json", "r") as f:
-                    feature_map_data = json.load(f)
-                if isinstance(feature_map_data, dict):
-                    self.v = list(feature_map_data.values())
-                    print("[DEBUG] Feature-Map erfolgreich als Liste von Listen geladen:", self.v)
-                else:
-                    self.v = feature_map_data
-                    print("[DEBUG] Feature-Map direkt als Liste von Listen verwendet:", self.v)
-                    self.v = feature_map_data["feature_map"]
-                    print(f"Feature-Mapper: Feste Feature-Map aus {feature_map_path} geladen.")
+
+        feature_map_path = "fixed_feature_map.json"
+        if os.path.exists(feature_map_path):
+            # Fixed Feature Map aus JSON-Datei laden
+            with open("fixed_feature_map.json", "r") as f:
+                feature_map_data = json.load(f)
+            if isinstance(feature_map_data, dict) and "feature_map" in feature_map_data:
+                self.v = feature_map_data["feature_map"]
+                print("[DEBUG] Feature-Map erfolgreich aus JSON-Datei geladen:", self.v)
             else:
-                raise FileNotFoundError("Feature-Map JSON-Datei fehlt. Bitte erstellen und speichern.")
+                raise ValueError("Feature-Map JSON-Datei hat ein ungültiges Format.")
+        else:
+            raise FileNotFoundError("Feature-Map JSON-Datei fehlt. Bitte erstellen und speichern.")
         self.ensembleLayer = []
         self.__createAD__()
         print("Feature-Mapper: execute-mode, Anomaly-Detector: train-mode")
@@ -126,26 +122,7 @@ class KitNET:
             for a in range(len(self.ensembleLayer)):
                 print(f"[DEBUG] Schleife wird durchlaufen")
                 try:
-                    # xi = x[self.v[a]]
-                    try:
-                        if a >= len(self.v):
-                            print(f"[ERROR] Autoencoder {a} hat keine zugeordnete Feature-Map.")
-                            continue
-
-                        feature_indices = self.v[a]
-                        print(f"[DEBUG] Feature-Indizes für Autoencoder {a}: {feature_indices}")
-
-                        if max(feature_indices) >= len(x):
-                            print(
-                                f"[ERROR] Autoencoder {a} hat ungültige Feature-Indizes: {feature_indices}. Vektor-Länge: {len(x)}")
-                            continue
-
-                        xi = x[feature_indices]
-                        print(f"[DEBUG] Eingabe für Autoencoder {a}: {xi}")
-                    except Exception as e:
-                        print(f"[ERROR] Fehler beim Extrahieren der Features für Autoencoder {a}: {e}")
-                        continue
-
+                    xi = x[self.v[a]]
                     print(f"[DEBUG] Training Autoencoder {a} mit Features: {xi}")
                     S_l1[a] = self.ensembleLayer[a].train(xi)
                     print(f"[DEBUG] Autoencoder {a} trainiert. RMSE: {S_l1[a]}")
@@ -198,6 +175,7 @@ class KitNET:
     def __createAD__(self):
         # construct ensemble layer
         self.ensembleLayer = []  # Leere Liste für Autoencoder
+        print("[DEBUG] Erstelle Autoencoder basierend auf fester Feature-Map:")
         for idx, feature_indices in enumerate(self.v):
             try:
                 params = AE.dA_params(
@@ -210,6 +188,7 @@ class KitNET:
                 )
                 autoencoder = AE.dA(params)
                 self.ensembleLayer.append(autoencoder)
+                print(f"[DEBUG] Autoencoder {idx} erstellt für Features: {feature_indices}")
             except Exception as e:
                 print(f"[ERROR] Fehler beim Erstellen von Autoencoder {idx}: {e}")
 
@@ -224,6 +203,7 @@ class KitNET:
                 hiddenRatio=self.hr
             )
             self.outputLayer = AE.dA(params)
+            print("[DEBUG] Output-Layer erfolgreich erstellt.")
         except Exception as e:
             print(f"[ERROR] Fehler beim Erstellen des Output-Layers: {e}")
 
