@@ -55,7 +55,7 @@ class KitNET:
         self.__createAD__()
         print("Feature-Mapper: execute-mode, Anomaly-Detector: train-mode")
         self.FM = CC.corClust(self.n)  # incremental feature cluatering for the feature mapping process
-        self.outputLayer = None
+        # self.outputLayer = None
 
     # If FM_grace_period+AM_grace_period has passed, then this function executes KitNET on x. Otherwise, this function learns from x.
     # x: a numpy array of length n
@@ -63,9 +63,6 @@ class KitNET:
     def process(self, x):
         try:
             if self.n_trained > self.FM_grace_period + self.AD_grace_period:  # If both the FM and AD are in execute-mode
-                print("[DEBUG] Execute-Mode aktiviert.")
-                if self.ensembleLayer is None or self.outputLayer is None:
-                    print("[ERROR] EnsembleLayer oder OutputLayer ist None!")
                 return self.execute(x)
             else:
                 self.train(x)
