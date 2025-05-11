@@ -108,7 +108,6 @@ class KitNET:
             raise RuntimeError(
                 'KitNET Cannot execute x, because a feature mapping has not yet been learned or provided. Try running process(x) instead.')
         else:
-            print("[DEBUG] Starte Execute-Modus...")
             self.n_executed += 1
             ## Ensemble Layer
             if self.ensembleLayer is None:
@@ -118,29 +117,17 @@ class KitNET:
                 print("[ERROR] OutputLayer ist None!")
                 return None
             S_l1 = np.zeros(len(self.ensembleLayer))
-            print(f"[DEBUG] Anzahl Autoencoder in EnsembleLayer: {len(self.ensembleLayer)}")
-            print(f"[DEBUG] OutputLayer Typ: {type(self.outputLayer)}")
             for a in range(len(self.ensembleLayer)):
                 try:
-                    print(f"[DEBUG] Ausführung Autoencoder {a} mit Features: {self.v[a]}")
                     xi = x[self.v[a]]
-
-                    if xi is None or len(xi) == 0:
-                        print(f"[ERROR] Keine Features für Autoencoder {a}. Überspringe.")
-                        continue
-
                     S_l1[a] = self.ensembleLayer[a].execute(xi)
-                    print(f"[DEBUG] Autoencoder {a} ausgeführt. RMSE: {S_l1[a]}")
                 except Exception as e:
                     print(f"[ERROR] Fehler in Autoencoder {a} während der Ausführung: {str(e)}")
             ## OutputLayer
             try:
                 if self.outputLayer is None:
                     raise RuntimeError("OutputLayer ist None, obwohl der Execute-Modus aktiv ist.")
-
-                print("[DEBUG] Ausführung des Output-Layers...")
                 output_rmse = self.outputLayer.execute(S_l1)
-                print(f"[DEBUG] Output-Layer RMSE: {output_rmse}")
                 return output_rmse
             except Exception as e:
                 print(f"[ERROR] Fehler im Output-Layer: {str(e)}")
@@ -160,7 +147,6 @@ class KitNET:
                 )
                 autoencoder = AE.dA(params)
                 self.ensembleLayer.append(autoencoder)
-                print(f"[DEBUG] Autoencoder erstellt mit {len(feature_indices)} Features.")
             except Exception as e:
                 print(f"[ERROR] Fehler beim Erstellen von Autoencoder {idx}: {e}")
 
@@ -175,7 +161,6 @@ class KitNET:
                 hiddenRatio=self.hr
             )
             self.outputLayer = AE.dA(params)
-            print("[DEBUG] Output-Layer erfolgreich erstellt.")
         except Exception as e:
             print(f"[ERROR] Fehler beim Erstellen des Output-Layers: {e}")
 
