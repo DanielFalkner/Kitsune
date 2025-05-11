@@ -114,11 +114,15 @@ class KitNET:
             print("[DEBUG] Starte Execute-Modus...")
             self.n_executed += 1
             ## Ensemble Layer
-            if self.ensembleLayer is None or self.outputLayer is None:
-                print("[ERROR] EnsembleLayer oder OutputLayer ist None!")
+            if self.ensembleLayer is None:
+                print("[ERROR] EnsembleLayer ist None!")
+                return None
+            if self.outputLayer is None:
+                print("[ERROR] OutputLayer ist None!")
                 return None
             S_l1 = np.zeros(len(self.ensembleLayer))
             print(f"[DEBUG] Anzahl Autoencoder in EnsembleLayer: {len(self.ensembleLayer)}")
+            print(f"[DEBUG] OutputLayer Typ: {type(self.outputLayer)}")
             for a in range(len(self.ensembleLayer)):
                 try:
                     print(f"[DEBUG] Ausführung Autoencoder {a} mit Features: {self.v[a]}")
@@ -146,6 +150,7 @@ class KitNET:
                 return None
 
     def __createAD__(self):
+        self.ensembleLayer = []
         for idx, feature_indices in enumerate(self.v):
             try:
                 params = AE.dA_params(
@@ -158,6 +163,7 @@ class KitNET:
                 )
                 autoencoder = AE.dA(params)
                 self.ensembleLayer.append(autoencoder)
+                print(f"[DEBUG] Autoencoder erstellt mit {len(feature_indices)} Features.")
             except Exception as e:
                 print(f"[ERROR] Fehler beim Erstellen von Autoencoder {idx}: {e}")
 
@@ -172,6 +178,7 @@ class KitNET:
                 hiddenRatio=self.hr
             )
             self.outputLayer = AE.dA(params)
+            print("[DEBUG] Output-Layer erfolgreich erstellt.")
         except Exception as e:
             print(f"[ERROR] Fehler beim Erstellen des Output-Layers: {e}")
 
