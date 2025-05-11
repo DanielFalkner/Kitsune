@@ -68,7 +68,6 @@ class KitNET:
                     print("[ERROR] EnsembleLayer oder OutputLayer ist None!")
                 return self.execute(x)
             else:
-                print("[DEBUG] Training-Mode aktiv.")
                 self.train(x)
                 return 0.0
         except Exception as e:
@@ -115,6 +114,9 @@ class KitNET:
             print("[DEBUG] Starte Execute-Modus...")
             self.n_executed += 1
             ## Ensemble Layer
+            if self.ensembleLayer is None or self.outputLayer is None:
+                print("[ERROR] EnsembleLayer oder OutputLayer ist None!")
+                return None
             S_l1 = np.zeros(len(self.ensembleLayer))
             print(f"[DEBUG] Anzahl Autoencoder in EnsembleLayer: {len(self.ensembleLayer)}")
             for a in range(len(self.ensembleLayer)):
@@ -132,6 +134,10 @@ class KitNET:
                     print(f"[ERROR] Fehler in Autoencoder {a} während der Ausführung: {str(e)}")
             ## OutputLayer
             try:
+                if self.outputLayer is None:
+                    raise RuntimeError("OutputLayer ist None, obwohl der Execute-Modus aktiv ist.")
+
+                print("[DEBUG] Ausführung des Output-Layers...")
                 output_rmse = self.outputLayer.execute(S_l1)
                 print(f"[DEBUG] Output-Layer RMSE: {output_rmse}")
                 return output_rmse
