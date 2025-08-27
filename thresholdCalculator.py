@@ -5,7 +5,7 @@ class ThresholdCalculator:
         self.threshold_calculated = False  # Indicates whether threshold is already computed
         self.rmse_values_for_threshold = []  # Collected RMSE values to compute threshold
         self.threshold = None
-        self.in_threshold_phase = False   # Whether we are currently collecting threshold data
+        self.in_threshold_phase = False  # Whether we are currently collecting threshold data
 
     def handle_rmse(self, rmse):
         # Increments packet count and manages state between grace, thresholding, and detection

@@ -1,6 +1,7 @@
 import numpy as np
 import requests
 from scapy.all import sniff, IP, IPv6, ARP, ICMP, TCP, UDP
+
 from Kitsune import Kitsune
 from thresholdCalculator import ThresholdCalculator
 from edgeDevice import EdgeDevice
@@ -8,18 +9,36 @@ import threading
 import subprocess
 import os
 import time
+import socket
 
 sending_started = False  # Prevents sending weights before they are calculated
 log_dir = os.path.join(os.path.dirname(__file__), "Logs")
 os.makedirs(log_dir, exist_ok=True)
+
+RUN_ID = os.environ.get("RUN_ID", "t1_noFL_5k_homog")
+FL_ENABLED = int(os.environ.get("FL_ENABLED", "0"))
+DEVICE_ID = socket.gethostname()
+
+csv_path = os.path.join(log_dir, f"edge_log_{RUN_ID}_{DEVICE_ID}.csv")
+need_header = (not os.path.exists(csv_path)) or (os.stat(csv_path).st_size == 0)
+csv_f = open(csv_path, "a", buffering=1)  # line-buffered append
+if need_header:
+    csv_f.write("timestamp_ms,run_id,device_id,pkt_idx,phase,rmse,is_anomaly,threshold,fl_enabled,FM_grace,AD_grace\n")
+
+
+def _log_row(pkt_idx, phase, rmse, is_anom, threshold_val, FM_grace, AD_grace):
+    ts = int(time.time() * 1000)
+    thr_out = "" if threshold_val is None else f"{threshold_val:.6f}"
+    csv_f.write(
+        f"{ts},{RUN_ID},{DEVICE_ID},{pkt_idx},{phase},{rmse:.6f},{is_anom},{thr_out},{FL_ENABLED},{FM_grace},{AD_grace}\n")
 
 
 def main():
     # Kitsune-Parameter
     path = "real_time"
     packet_limit = np.inf
-    FM_grace = 25  # Packet number of Feature Mapping grace period (training phase 1)
-    AD_grace = 250  # Packet number of Anomaly Detection grace period (training phase 2)
+    FM_grace = 250  # Packet number of Feature Mapping grace period (training phase 1)
+    AD_grace = 2250  # Packet number of Anomaly Detection grace period (training phase 2)
     max_autoencoder_size = 10
 
     # interface = "WLAN"  # Network interface name of Host Laptop
@@ -32,6 +51,18 @@ def main():
     # Initialize Kitsune and EdgeDevice
     kitsune = Kitsune(path, packet_limit, max_autoencoder_size, FM_grace, AD_grace)
     edge_device = EdgeDevice(server_url="http://192.168.0.163:5000", kitsune_instance=kitsune)
+
+    total_grace = FM_grace + AD_grace  # Ende TRAIN (keine sinnvollen RMSE)
+    calib_until = 2 * (FM_grace + AD_grace) # Ende CALIB (Threshold fertig)
+
+    # >>> STATE für die Callback-Funktion
+    state = {
+        "pkt_idx": 0,
+        "phase": "TRAIN",  # TRAIN -> CALIB -> DETECT
+        "threshold_value": None,
+        "total_grace": total_grace,
+        "calib_until": calib_until
+    }
 
     def handle_packet(packet):
         global sending_started
@@ -85,20 +116,52 @@ def main():
                     # Logging
                     model_depth = len(kitsune.AnomDetector.ensembleLayer)
                     timestamp = time.time()
-                    with open(f"{log_dir}/model_depth_log.csv", "w") as f:
+                    mpath = f"{log_dir}/model_depth_log.csv"
+                    need_h = (not os.path.exists(mpath)) or (os.stat(mpath).st_size == 0)
+                    with open(mpath, "a") as f:
+                        if need_h:
+                            f.write("device_id,model_depth,timestamp\n")
                         f.write(f"{edge_device.device_id},{model_depth},{timestamp}\n")
                     print(f"[{edge_device.device_id}] Modell abgeschlossen mit {model_depth} Autoencoder-Schichten")
 
                 if rmse is not None and rmse != -1:
+
                     print(f"RMSE: {rmse}")
                     timestamp = time.time()
                     threshold = threshold_calculator.handle_rmse(rmse)
 
+                    s = state  # Abkürzung
+                    s["pkt_idx"] += 1
+                    # Phase per Index ableiten – deine Schwellenlogik bleibt unberührt:
+                    if s["pkt_idx"] <= s["total_grace"]:
+                        s["phase"] = "TRAIN"
+                        is_anom = 0
+
+                    elif s["pkt_idx"] <= s["calib_until"]:
+                        s["phase"] = "CALIB"
+                        is_anom = 0
+                        # Schwellenwert (falls bereits gesetzt) lesen – NICHT berechnen:
+                        try:
+                            s["threshold_value"] = threshold
+                        except Exception:
+                            pass
+
+                    else:
+                        s["phase"] = "DETECT"
+                        try:
+                            s["threshold_value"] = threshold
+                        except Exception:
+                            pass
+                        is_anom = 1 if (s["threshold_value"] is not None and rmse > s["threshold_value"]) else 0
+
+                    _log_row(s["pkt_idx"], s["phase"], rmse, is_anom, s["threshold_value"], FM_grace, AD_grace)
+
                     # Logging
+                    """
                     with open(f"{log_dir}/rmse_log_{edge_device.device_id}.csv", "w") as f:
                         is_anomaly = 1 if threshold and rmse > threshold else 0
                         f.write(f"{timestamp},{rmse:.6f},{threshold if threshold else -1},{is_anomaly}\n")
-
+                    """
                     if threshold is not None and rmse > threshold:
                         print("Anomalie erkannt!")
                 else:
