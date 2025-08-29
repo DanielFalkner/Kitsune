@@ -32,5 +32,5 @@ class ThresholdCalculator:
     def calculate_threshold(self):
         # Basic threshold calculation using mean * factor of RMSEs
         mean_rmse = sum(self.rmse_values_for_threshold) / len(self.rmse_values_for_threshold)
-        self.threshold = mean_rmse * 4  # Customizable multiplier for sensitivity
+        self.threshold = mean_rmse * 6  # Customizable multiplier for sensitivity
         print(f"Threshold berechnet: {self.threshold}")
