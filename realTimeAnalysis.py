@@ -23,14 +23,15 @@ csv_path = os.path.join(log_dir, f"edge_log_{RUN_ID}_{DEVICE_ID}.csv")
 need_header = (not os.path.exists(csv_path)) or (os.stat(csv_path).st_size == 0)
 csv_f = open(csv_path, "a", buffering=1)  # line-buffered append
 if need_header:
-    csv_f.write("timestamp_ms,run_id,device_id,pkt_idx,phase,rmse,is_anomaly,threshold,fl_enabled,FM_grace,AD_grace\n")
+    csv_f.write("timestamp_ms,run_id,device_id,src_ip,dst_ip,src_port,dst_port,protocol,pkt_idx,phase,rmse,"
+                "is_anomaly,threshold,fl_enabled,FM_grace,AD_grace\n")
 
 
-def _log_row(pkt_idx, phase, rmse, is_anom, threshold_val, FM_grace, AD_grace):
+def _log_row(src_ip, dst_ip, src_port, dst_port, protocol, pkt_idx, phase, rmse, is_anom, threshold_val, FM_grace, AD_grace):
     ts = int(time.time() * 1000)
     thr_out = "" if threshold_val is None else f"{threshold_val:.6f}"
     csv_f.write(
-        f"{ts},{RUN_ID},{DEVICE_ID},{pkt_idx},{phase},{rmse:.6f},{is_anom},{thr_out},{FL_ENABLED},{FM_grace},{AD_grace}\n")
+        f"{ts},{RUN_ID},{DEVICE_ID},{src_ip},{dst_ip},{src_port},{dst_port},{protocol},{pkt_idx},{phase},{rmse:.6f},{is_anom},{thr_out},{FL_ENABLED},{FM_grace},{AD_grace}\n")
 
 
 def main():
@@ -71,6 +72,7 @@ def main():
             return
 
         try:
+            src_ip = None
             dst_ip = None
             protocol = "Unknown"
 
@@ -84,12 +86,15 @@ def main():
 
             # Determine transport-layer protocol
             dst_port = "N/A"
+            src_port = "N/A"
             if packet.haslayer(TCP):
                 protocol = "TCP"
                 dst_port = packet[TCP].dport
+                src_port = packet[TCP].sport
             elif packet.haslayer(UDP):
                 protocol = "UDP"
                 dst_port = packet[UDP].dport
+                src_port = packet[UDP].sport
 
             # Process packets destined for the local device
             if dst_ip == target_ip or (target_ipv6 and dst_ip == target_ipv6):
@@ -154,7 +159,7 @@ def main():
                             pass
                         is_anom = 1 if (s["threshold_value"] is not None and rmse > s["threshold_value"]) else 0
 
-                    _log_row(s["pkt_idx"], s["phase"], rmse, is_anom, s["threshold_value"], FM_grace, AD_grace)
+                    _log_row(src_ip, dst_ip, src_port, dst_port, protocol, s["pkt_idx"], s["phase"], rmse, is_anom, s["threshold_value"], FM_grace, AD_grace)
 
                     # Logging
                     """
