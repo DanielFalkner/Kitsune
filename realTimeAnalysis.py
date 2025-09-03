@@ -39,7 +39,7 @@ def main():
     path = "real_time"
     packet_limit = np.inf
     FM_grace = 500  # Packet number of Feature Mapping grace period (training phase 1)
-    AD_grace = 4500  # Packet number of Anomaly Detection grace period (training phase 2)
+    AD_grace = 6500  # Packet number of Anomaly Detection grace period (training phase 2)
     max_autoencoder_size = 10
 
     # interface = "WLAN"  # Network interface name of Host Laptop
