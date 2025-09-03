@@ -12,7 +12,7 @@ device_id = socket.gethostname()
 # Represents an Edge Device, which sends model weights periodically to a server
 # and receives aggregated weights from the server to update local model
 class EdgeDevice:
-    def __init__(self, server_url, kitsune_instance, send_interval=300):
+    def __init__(self, server_url, kitsune_instance, send_interval=60):
         self.server_url = server_url
         self.device_id = device_id
         self.kitnet = kitsune_instance.AnomDetector  # Uses KitNET from Kitsune
